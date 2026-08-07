@@ -527,7 +527,7 @@ window.addEventListener('click', (event) => {
     
             if (moveResult) {
               if (gameMode === 'online' && conn) {
-                conn.send({ type: 'move', from: selectedSquare, to: clickedSquare });
+                conn.send({ type: 'move', from: selectedSquare!, to: clickedSquare });
               }
               
               syncBoard();
