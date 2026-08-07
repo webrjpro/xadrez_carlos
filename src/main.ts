@@ -2,6 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { Chess } from 'chess.js';
 import { Checkers } from './checkers';
 import gsap from 'gsap';
@@ -374,6 +375,7 @@ let loadedPieces: Record<string, Record<string, THREE.Object3D>> = {
 };
 
 const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
 loader.load(
   import.meta.env.BASE_URL + 'chess.glb',
   // onLoad
