@@ -375,9 +375,10 @@ let loadedPieces: Record<string, Record<string, THREE.Object3D>> = {
 };
 
 const loader = new GLTFLoader();
-loader.setMeshoptDecoder(MeshoptDecoder);
-loader.load(
-  import.meta.env.BASE_URL + 'chess.glb',
+MeshoptDecoder.ready.then(() => {
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.load(
+    import.meta.env.BASE_URL + 'chess.glb',
   // onLoad
   (gltf) => {
     const model = gltf.scene;
@@ -465,6 +466,7 @@ loader.load(
     }
   }
 );
+});
 
 function syncBoard() {
   piecesGroup.clear();
