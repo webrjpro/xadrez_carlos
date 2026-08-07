@@ -12,8 +12,12 @@ import type { DataConnection } from 'peerjs';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <canvas id="game-canvas"></canvas>
   <div id="ui-layer">
-    <div id="loading-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 100; background: var(--bg-dark);">
+    <div id="loading-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; background: var(--bg-dark); gap: 1.5rem;">
       <h1 style="color: var(--accent); font-family: 'Playfair Display', serif;">Carregando Modelos 3D...</h1>
+      <div style="width: 280px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+        <div id="loading-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #d4af37, #fcd34d); border-radius: 3px; transition: width 0.3s ease;"></div>
+      </div>
+      <span id="loading-percent" style="color: var(--text-muted); font-size: 0.9rem;">0%</span>
     </div>
     
     <header>
@@ -107,17 +111,26 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </aside>
     </div>
     
+    <button id="btn-lock-camera" class="btn-lock-camera" title="Travar Câmera">🔓 Travar Câmera</button>
     <footer>Arraste para girar • roda do mouse para zoom • clique para jogar</footer>
     <div id="alert-center" class="alert-center"></div>
   </div>
 `;
 
 // Three.js Setup
+const isMobile = window.innerWidth <= 768;
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas')!;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ 
+  canvas, 
+  antialias: !isMobile, // Desliga antialias no celular
+  powerPreference: isMobile ? "low-power" : "default",
+  precision: isMobile ? "mediump" : "highp" // Usa precisão menor de shader no celular
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true;
+// Força pixelRatio 1 no mobile (salva MUITA memória RAM de vídeo)
+renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
+// Sombra apenas em telas maiores
+renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
@@ -147,8 +160,24 @@ camera.add(cameraLight);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.rotateSpeed = 0.6; // Reduzido para ficar mais fácil no touch/tablet
 controls.target.set(4, 0, 4); // Center of 8x8 board
 controls.update();
+
+const btnLock = document.getElementById('btn-lock-camera')!;
+let cameraLocked = false;
+btnLock.addEventListener('click', () => {
+  cameraLocked = !cameraLocked;
+  controls.enabled = !cameraLocked;
+  if (cameraLocked) {
+    btnLock.innerHTML = '🔒 Câmera Travada';
+    btnLock.style.background = 'rgba(212, 175, 55, 0.2)';
+  } else {
+    btnLock.innerHTML = '🔓 Travar Câmera';
+    btnLock.style.background = 'rgba(20,20,20,0.8)';
+  }
+});
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased ambient
@@ -345,64 +374,81 @@ let loadedPieces: Record<string, Record<string, THREE.Object3D>> = {
 };
 
 const loader = new GLTFLoader();
-loader.load(import.meta.env.BASE_URL + 'chess.glb', (gltf) => {
-  const model = gltf.scene;
-  
-  // Extract base pieces
-  const extractPiece = (name: string) => {
-    const obj = model.getObjectByName(name);
-    if (!obj) return new THREE.Group();
-    const clone = obj.clone();
+loader.load(
+  import.meta.env.BASE_URL + 'chess.glb',
+  // onLoad
+  (gltf) => {
+    const model = gltf.scene;
     
-    // To prevent breaking relative positions of children (like the glass spheres),
-    // we don't force clone.position to 0,0,0. Instead, we find the visual center
-    // of the whole assembly and shift it inside a pivot group.
+    // Extract base pieces
+    const extractPiece = (name: string) => {
+      const obj = model.getObjectByName(name);
+      if (!obj) return new THREE.Group();
+      const clone = obj.clone();
+      
+      clone.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(clone);
+      const center = box.getCenter(new THREE.Vector3());
+      const min = box.min;
+      
+      const pivot = new THREE.Group();
+      clone.position.x -= center.x;
+      clone.position.y -= min.y;
+      clone.position.z -= center.z;
+      
+      pivot.add(clone);
+      return pivot;
+    };
     
-    // Update world matrices to ensure accurate bounding box
-    clone.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(clone);
-    const center = box.getCenter(new THREE.Vector3());
-    const min = box.min;
+    loadedPieces.w = {
+      k: extractPiece('King_W'),
+      q: extractPiece('Queen_W'),
+      r: extractPiece('Castle_W1'),
+      n: extractPiece('Knight_W1'),
+      b: extractPiece('Bishop_W1'),
+      p: extractPiece('Pawn_Body_W1')
+    };
     
-    const pivot = new THREE.Group();
+    loadedPieces.b = {
+      k: extractPiece('King_B'),
+      q: extractPiece('Queen_B'),
+      r: extractPiece('Castle_B1'),
+      n: extractPiece('Knight_B1'),
+      b: extractPiece('Bishop_B1'),
+      p: extractPiece('Pawn_Body_B1')
+    };
     
-    // Shift the clone so the center bottom is at the pivot's origin
-    clone.position.x -= center.x;
-    clone.position.y -= min.y;
-    clone.position.z -= center.z;
-    
-    pivot.add(clone);
-    return pivot;
-  };
-  
-  // We only need one prototype of each to clone later
-  loadedPieces.w = {
-    k: extractPiece('King_W'),
-    q: extractPiece('Queen_W'),
-    r: extractPiece('Castle_W1'),
-    n: extractPiece('Knight_W1'),
-    b: extractPiece('Bishop_W1'),
-    p: extractPiece('Pawn_Body_W1')
-  };
-  
-  loadedPieces.b = {
-    k: extractPiece('King_B'),
-    q: extractPiece('Queen_B'),
-    r: extractPiece('Castle_B1'),
-    n: extractPiece('Knight_B1'),
-    b: extractPiece('Bishop_B1'),
-    p: extractPiece('Pawn_Body_B1')
-  };
-  
-  // Scale factor: A Beautiful Game squares are ~0.0945 units, ours are 1.0. 
-  // Let's scale up pieces by ~10.5
-  piecesGroup.scale.set(10.5, 10.5, 10.5);
-  // Adjust pieceGroup Y position slightly if they sink or float
-  piecesGroup.position.y = 0.2; 
+    piecesGroup.scale.set(10.5, 10.5, 10.5);
+    piecesGroup.position.y = 0.2; 
 
-  document.getElementById('loading-screen')!.style.display = 'none';
-  startGame();
-});
+    document.getElementById('loading-screen')!.style.display = 'none';
+    startGame();
+  },
+  // onProgress — atualiza barra de carregamento
+  (xhr) => {
+    if (xhr.lengthComputable) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      const bar = document.getElementById('loading-bar');
+      const txt = document.getElementById('loading-percent');
+      if (bar) bar.style.width = pct + '%';
+      if (txt) txt.textContent = pct + '%';
+    }
+  },
+  // onError — mostra mensagem em vez de travar
+  (error) => {
+    console.error('Erro ao carregar modelo 3D:', error);
+    const screen = document.getElementById('loading-screen');
+    if (screen) {
+      screen.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h1 style="color: #ef4444; font-family: 'Playfair Display', serif; margin-bottom: 1rem;">Erro ao carregar</h1>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Não foi possível baixar as peças 3D.<br>Verifique sua conexão e tente novamente.</p>
+          <button onclick="location.reload()" style="padding: 0.8rem 2rem; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">Recarregar</button>
+        </div>
+      `;
+    }
+  }
+);
 
 function syncBoard() {
   piecesGroup.clear();
@@ -486,7 +532,56 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let selectedSquare: string | null = null;
 const highlightMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.5 });
+const mandatoryCaptureMat = new THREE.MeshBasicMaterial({ color: 0xff3333, transparent: true, opacity: 0.45 });
 let highlightMesh: THREE.Mesh | null = null;
+let mandatoryHighlights: THREE.Mesh[] = [];
+
+// Som de erro (beep curto) usando Web Audio API
+function playErrorBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 220; // tom grave
+    osc.type = 'square';
+    gain.gain.value = 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) { /* sem áudio, sem problema */ }
+}
+
+// Mostrar quais peças TÊM que capturar (vermelho)
+function showMandatoryCaptures() {
+  clearMandatoryHighlights();
+  if (activeGame !== 'checkers') return;
+  
+  const allMoves = checkers.getValidMoves();
+  const hasCaptures = allMoves.some((m: any) => m.captured && m.captured.length > 0);
+  if (!hasCaptures) return;
+  
+  // Pegar as casas de origem das peças que podem capturar
+  const captureSources = new Set(allMoves.filter((m: any) => m.captured && m.captured.length > 0).map((m: any) => m.from));
+  
+  captureSources.forEach((sq: string) => {
+    const file = sq.charCodeAt(0) - 97;
+    const rank = 8 - parseInt(sq[1]);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), mandatoryCaptureMat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(file + 0.5, 0.206, rank + 0.5);
+    scene.add(mesh);
+    mandatoryHighlights.push(mesh);
+  });
+}
+
+function clearMandatoryHighlights() {
+  for (const m of mandatoryHighlights) {
+    m.geometry.dispose();
+    scene.remove(m);
+  }
+  mandatoryHighlights = [];
+}
 
 window.addEventListener('click', (event) => {
   if (!isPlaying) return;
@@ -545,7 +640,20 @@ window.addEventListener('click', (event) => {
       } else {
         const piece = activeGame === 'chess' ? chess.get(clickedSquare as any) : checkers.get(clickedSquare);
         if (piece && (gameMode === 'friend' ? piece.color === turnColor : piece.color === playerColor)) {
+          // Checkers: verificar se tem captura obrigatória com OUTRA peça
+          if (activeGame === 'checkers') {
+            const allMoves = checkers.getValidMoves();
+            const hasCaptures = allMoves.some((m: any) => m.captured && m.captured.length > 0);
+            const thisHasCapture = allMoves.some((m: any) => m.from === clickedSquare && m.captured && m.captured.length > 0);
+            if (hasCaptures && !thisHasCapture) {
+              playErrorBeep();
+              showAlert('⚠️ Captura obrigatória! Clique na peça vermelha.');
+              showMandatoryCaptures();
+              return;
+            }
+          }
           selectedSquare = clickedSquare;
+          clearMandatoryHighlights();
           highlightSquare(selectedSquare);
         } else {
           selectedSquare = null;
@@ -555,7 +663,20 @@ window.addEventListener('click', (event) => {
     } else {
       const piece = activeGame === 'chess' ? chess.get(clickedSquare as any) : checkers.get(clickedSquare);
       if (piece && (gameMode === 'friend' ? piece.color === turnColor : piece.color === playerColor)) {
+        // Checkers: verificar captura obrigatória
+        if (activeGame === 'checkers') {
+          const allMoves = checkers.getValidMoves();
+          const hasCaptures = allMoves.some((m: any) => m.captured && m.captured.length > 0);
+          const thisHasCapture = allMoves.some((m: any) => m.from === clickedSquare && m.captured && m.captured.length > 0);
+          if (hasCaptures && !thisHasCapture) {
+            playErrorBeep();
+            showAlert('⚠️ Captura obrigatória! Clique na peça vermelha.');
+            showMandatoryCaptures();
+            return;
+          }
+        }
         selectedSquare = clickedSquare;
+        clearMandatoryHighlights();
         highlightSquare(selectedSquare);
       }
     }
@@ -577,9 +698,11 @@ function highlightSquare(square: string) {
 
 function removeHighlight() {
   if (highlightMesh) {
+    highlightMesh.geometry.dispose();
     scene.remove(highlightMesh);
     highlightMesh = null;
   }
+  clearMandatoryHighlights();
 }
 
 function animateMove(from: string, to: string, callback: () => void) {
@@ -695,6 +818,11 @@ function setupOnlineUI() {
     btnHost.disabled = true;
     statusTxt.textContent = 'Gerando código...';
     
+    if (peer) {
+      peer.destroy();
+      peer = null;
+    }
+    
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
     peer = new Peer('gmaster-' + code);
     
@@ -732,6 +860,11 @@ function setupOnlineUI() {
     btnJoin.disabled = true;
     statusTxt.textContent = 'Conectando...';
     
+    if (peer) {
+      peer.destroy();
+      peer = null;
+    }
+    
     peer = new Peer();
     
     peer.on('open', () => {
@@ -744,9 +877,14 @@ function setupOnlineUI() {
       });
       
       conn.on('error', () => {
-         statusTxt.textContent = 'Erro ao conectar.';
+         statusTxt.textContent = 'Erro na conexão com o host.';
          btnJoin.disabled = false;
       });
+    });
+    
+    peer.on('error', (err) => {
+       statusTxt.textContent = 'Erro: ' + err.message;
+       btnJoin.disabled = false;
     });
   });
 }

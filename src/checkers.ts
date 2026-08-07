@@ -124,78 +124,100 @@ export class Checkers {
     const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
     
     if (p.type === 'm') {
+      // Regra brasileira: peão pula por cima do inimigo e cai na casa vazia atrás dele
+      // Captura para frente E para trás
       for (const [dr, dc] of dirs) {
-        const jumpR = r + dr * 2;
-        const jumpC = c + dc * 2;
         const capR = r + dr;
         const capC = c + dc;
+        const landR = r + dr * 2;
+        const landC = c + dc * 2;
         
-        if (this.isValid(jumpR, jumpC) && this.isValid(capR, capC)) {
+        if (this.isValid(landR, landC) && this.isValid(capR, capC)) {
           const capSq = this.rcToSq(capR, capC);
           const capPiece = this.board[capR][capC];
           
-          if (!visited.has(capSq) && capPiece && capPiece.color !== p.color && this.board[jumpR][jumpC] === null) {
+          // Tem inimigo na diagonal E a casa após ele está vazia?
+          if (!visited.has(capSq) && capPiece && capPiece.color !== p.color && this.board[landR][landC] === null) {
             const newVisited = new Set(visited);
             newVisited.add(capSq);
             const newPath = [...currentPath, capSq];
             
-            const originalDest = this.board[jumpR][jumpC];
-            this.board[jumpR][jumpC] = p;
+            // Simular o pulo
+            const originalLand = this.board[landR][landC];
+            const originalCap = this.board[capR][capC];
+            this.board[landR][landC] = p;
             this.board[r][c] = null;
+            this.board[capR][capC] = null; // Remove o inimigo temporariamente
             
-            const furtherCaptures = this.getCapturesForPiece(jumpR, jumpC, p, newPath, newVisited);
+            // Verificar multi-captura
+            const furtherCaptures = this.getCapturesForPiece(landR, landC, p, newPath, newVisited);
             
+            // Restaurar
             this.board[r][c] = p;
-            this.board[jumpR][jumpC] = originalDest;
+            this.board[capR][capC] = originalCap;
+            this.board[landR][landC] = originalLand;
             
             if (furtherCaptures.length > 0) {
               for (const fc of furtherCaptures) {
                 captures.push({ from: sq, to: fc.to, captured: fc.captured });
               }
             } else {
-              captures.push({ from: sq, to: this.rcToSq(jumpR, jumpC), captured: newPath });
+              captures.push({ from: sq, to: this.rcToSq(landR, landC), captured: newPath });
             }
           }
         }
       }
     } else {
+      // Regra brasileira para Dama: desliza na diagonal, pula por cima do inimigo
+      // e pode cair em QUALQUER casa vazia após o inimigo
       for (const [dr, dc] of dirs) {
-        let capR = r + dr;
-        let capC = c + dc;
-        let foundEnemySq: string | null = null;
+        let scanR = r + dr;
+        let scanC = c + dc;
         
-        while (this.isValid(capR, capC)) {
-          const pSq = this.rcToSq(capR, capC);
-          const cp = this.board[capR][capC];
+        // Percorrer a diagonal até encontrar uma peça
+        while (this.isValid(scanR, scanC) && this.board[scanR][scanC] === null) {
+          scanR += dr;
+          scanC += dc;
+        }
+        
+        // Chegou numa peça?
+        if (!this.isValid(scanR, scanC)) continue;
+        const cp = this.board[scanR][scanC];
+        const capSq = this.rcToSq(scanR, scanC);
+        if (!cp || cp.color === p.color || visited.has(capSq)) continue;
+        
+        // Encontrou inimigo! Agora a dama pode cair em qualquer casa vazia APÓS ele
+        let landR = scanR + dr;
+        let landC = scanC + dc;
+        
+        while (this.isValid(landR, landC) && this.board[landR][landC] === null) {
+          const newVisited = new Set(visited);
+          newVisited.add(capSq);
+          const newPath = [...currentPath, capSq];
           
-          if (cp) {
-            if (cp.color === p.color || visited.has(pSq)) break; 
-            if (foundEnemySq) break; 
-            foundEnemySq = pSq;
-          } else if (foundEnemySq) {
-            const newVisited = new Set(visited);
-            newVisited.add(foundEnemySq);
-            const newPath = [...currentPath, foundEnemySq];
-            
-            const originalDest = this.board[capR][capC];
-            this.board[capR][capC] = p;
-            this.board[r][c] = null;
-            
-            const furtherCaptures = this.getCapturesForPiece(capR, capC, p, newPath, newVisited);
-            
-            this.board[r][c] = p;
-            this.board[capR][capC] = originalDest;
-            
-            if (furtherCaptures.length > 0) {
-              for (const fc of furtherCaptures) {
-                captures.push({ from: sq, to: fc.to, captured: fc.captured });
-              }
-            } else {
-              captures.push({ from: sq, to: this.rcToSq(capR, capC), captured: newPath });
+          // Simular
+          const originalCap = this.board[scanR][scanC];
+          this.board[landR][landC] = p;
+          this.board[r][c] = null;
+          this.board[scanR][scanC] = null;
+          
+          const furtherCaptures = this.getCapturesForPiece(landR, landC, p, newPath, newVisited);
+          
+          // Restaurar
+          this.board[r][c] = p;
+          this.board[scanR][scanC] = originalCap;
+          this.board[landR][landC] = null;
+          
+          if (furtherCaptures.length > 0) {
+            for (const fc of furtherCaptures) {
+              captures.push({ from: sq, to: fc.to, captured: fc.captured });
             }
+          } else {
+            captures.push({ from: sq, to: this.rcToSq(landR, landC), captured: newPath });
           }
-          capR += dr;
-          capC += dc;
+          
+          landR += dr;
+          landC += dc;
         }
       }
     }
