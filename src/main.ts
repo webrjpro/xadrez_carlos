@@ -205,7 +205,7 @@ let currentDifficulty = 'semi';
 let gameMode = 'ai';
 let activeGame: 'chess' | 'checkers' = 'chess';
 
-const engine = new Worker('/stockfish.js');
+const engine = new Worker(import.meta.env.BASE_URL + 'stockfish.js');
 engine.postMessage('uci');
 engine.postMessage('isready');
 
@@ -345,7 +345,7 @@ let loadedPieces: Record<string, Record<string, THREE.Object3D>> = {
 };
 
 const loader = new GLTFLoader();
-loader.load('/chess.glb', (gltf) => {
+loader.load(import.meta.env.BASE_URL + 'chess.glb', (gltf) => {
   const model = gltf.scene;
   
   // Extract base pieces
