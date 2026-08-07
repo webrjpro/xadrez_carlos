@@ -1,0 +1,978 @@
+import './style.css';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { Chess } from 'chess.js';
+import { Checkers } from './checkers';
+import gsap from 'gsap';
+import Peer from 'peerjs';
+import type { DataConnection } from 'peerjs';
+
+// Setup DOM
+document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+  <canvas id="game-canvas"></canvas>
+  <div id="ui-layer">
+    <div id="loading-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 100; background: var(--bg-dark);">
+      <h1 style="color: var(--accent); font-family: 'Playfair Display', serif;">Carregando Modelos 3D...</h1>
+    </div>
+    
+    <header>
+      <div class="logo-area">
+        <div class="logo-icon">♔</div>
+        <div class="logo-text">
+          <h1>Grandmaster 3D</h1>
+          <p>Xadrez real • motor local</p>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <div class="dot"></div>
+        <span>Motor local pronto</span>
+      </div>
+      <button id="menu-btn">☰</button>
+    </header>
+
+    <div class="main-content">
+      <aside class="right-panel" id="right-panel">
+        <button id="close-menu-btn">&times;</button>
+        <div class="panel-header">
+          <h3>Partida</h3>
+          <h2 id="turn-title">Sua vez</h2>
+          <p id="turn-subtitle">Brancas jogam.</p>
+          <div class="clocks-container">
+            <div class="clock active" id="clock-w">
+              <span class="label">Brancas</span>
+              <span class="time">10:00</span>
+            </div>
+            <div class="clock" id="clock-b">
+              <span class="label">Pretas</span>
+              <span class="time">10:00</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="divider"></div>
+
+        <div class="section-label">Jogo</div>
+        <div class="segmented-control" id="game-control">
+          <button class="seg-btn active" data-game="chess">Xadrez</button>
+          <button class="seg-btn" data-game="checkers">Damas</button>
+        </div>
+        
+        <div class="section-label">Modo</div>
+        <div class="segmented-control" id="mode-control">
+          <button class="seg-btn active" data-mode="ai">Contra IA</button>
+          <button class="seg-btn" data-mode="friend">Contra Amigo</button>
+          <button class="seg-btn" data-mode="online">Online</button>
+        </div>
+
+        <div id="online-panel" style="display: none; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+          <div style="margin-bottom: 10px;">
+            <button class="btn-secondary" id="btn-host" style="width: 100%;">Criar Sala (Host)</button>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <input type="text" id="input-join" placeholder="Código" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-light); text-transform: uppercase;">
+            <button class="btn-secondary" id="btn-join">Entrar</button>
+          </div>
+          <p id="online-status" style="margin-top: 10px; font-size: 12px; color: var(--text-dim); text-align: center;">Desconectado</p>
+        </div>
+        
+        <div class="section-label" id="diff-label">Dificuldade</div>
+        <div class="segmented-control" id="diff-control">
+          <button class="seg-btn" data-diff="amador">Amador</button>
+          <button class="seg-btn active" data-diff="semi">Semiprofissional</button>
+          <button class="seg-btn" data-diff="pro">Profissional</button>
+        </div>
+        
+        <div class="section-label">Você joga com</div>
+        <div class="segmented-control" id="color-control">
+          <button class="seg-btn active" data-color="w">Brancas</button>
+          <button class="seg-btn" data-color="b">Pretas</button>
+          <button class="seg-btn" data-color="r">Aleatório</button>
+        </div>
+        
+        <button class="btn-primary" id="btn-new">Nova partida</button>
+        
+        <div class="secondary-actions">
+          <button class="btn-secondary" id="btn-undo">↶ Desfazer</button>
+          <button class="btn-secondary" id="btn-flip">↺ Virar</button>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="history-header">
+          <span class="section-label" style="margin:0;">Histórico</span>
+          <button class="btn-small" id="btn-pgn">Copiar PGN</button>
+        </div>
+        <div class="history-list" id="history-list">Nenhum lance ainda.</div>
+      </aside>
+    </div>
+    
+    <footer>Arraste para girar • roda do mouse para zoom • clique para jogar</footer>
+    <div id="alert-center" class="alert-center"></div>
+  </div>
+`;
+
+// Three.js Setup
+const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas')!;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f1115);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(4, 8, 12);
+scene.add(camera);
+
+function updateCameraOffset() {
+  // Mobile / Tablet usa breakpoint 1024
+  if (window.innerWidth > 1024) {
+    // Shift the projection 190px right, which moves the scene 190px left
+    // to avoid the 400px wide UI panel on the right.
+    camera.setViewOffset(window.innerWidth, window.innerHeight, 200, 0, window.innerWidth, window.innerHeight);
+  } else {
+    camera.clearViewOffset();
+  }
+}
+updateCameraOffset();
+
+// Add a light attached to the camera so pieces are always visible from any angle
+const cameraLight = new THREE.PointLight(0xffffff, 1.2, 50);
+cameraLight.position.set(0, 2, 0); // slightly above the camera
+camera.add(cameraLight);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(4, 0, 4); // Center of 8x8 board
+controls.update();
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased ambient
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(5, 12, 8);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+// Add a subtle rim light for the black pieces
+const backLight = new THREE.DirectionalLight(0xaaccff, 0.8);
+backLight.position.set(-5, 5, -5);
+scene.add(backLight);
+
+// Board Generation
+const boardGroup = new THREE.Group();
+scene.add(boardGroup);
+
+const squareSize = 1;
+const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: 0.7, metalness: 0.1 });
+const lightMat = new THREE.MeshStandardMaterial({ color: 0xb5a085, roughness: 0.8, metalness: 0.05 });
+const borderMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.9, metalness: 0.1 });
+
+// Border
+const borderGeom = new THREE.BoxGeometry(8.6, 0.4, 8.6);
+const borderMesh = new THREE.Mesh(borderGeom, borderMat);
+borderMesh.position.set(4, -0.2, 4);
+borderMesh.receiveShadow = true;
+boardGroup.add(borderMesh);
+
+const boardGeometry = new THREE.BoxGeometry(squareSize, 0.2, squareSize);
+
+for (let rank = 0; rank < 8; rank++) {
+  for (let file = 0; file < 8; file++) {
+    const isDark = (rank + file) % 2 !== 0;
+    const mesh = new THREE.Mesh(boardGeometry, isDark ? darkMat : lightMat);
+    mesh.position.set(file + 0.5, 0.1, rank + 0.5);
+    mesh.receiveShadow = true;
+    boardGroup.add(mesh);
+  }
+}
+
+// Logic
+const chess = new Chess();
+const checkers = new Checkers();
+
+let isPlaying = false;
+let playerColor = 'w';
+let currentDifficulty = 'semi';
+let gameMode = 'ai';
+let activeGame: 'chess' | 'checkers' = 'chess';
+
+const engine = new Worker('/stockfish.js');
+engine.postMessage('uci');
+engine.postMessage('isready');
+
+engine.onmessage = function (event) {
+  const line = event.data;
+  console.log('Stockfish:', line);
+  if (line.startsWith('bestmove')) {
+    const match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
+    if (match) {
+      const from = match[1];
+      const to = match[2];
+      const move = chess.move({
+        from: from,
+        to: to,
+        promotion: match[3] || 'q',
+      });
+      
+      animateMove(from, to, () => {
+        syncBoard();
+        checkGameOver();
+      });
+    }
+  }
+};
+
+function triggerEngine() {
+  if (gameMode === 'friend') return;
+  if (!isPlaying) return;
+  
+  const turnColor = activeGame === 'chess' ? chess.turn() : checkers.turn();
+  if (turnColor === playerColor) return;
+  
+  if (activeGame === 'chess') {
+    if (chess.isCheckmate() || chess.isDraw()) return;
+    
+    updateTurnUI();
+    
+    engine.postMessage('position fen ' + chess.fen());
+    
+    let depth = 3;
+    if (currentDifficulty === 'semi') {
+      depth = 8;
+      engine.postMessage('setoption name Skill Level value 10');
+    } else if (currentDifficulty === 'pro') {
+      depth = 15;
+      engine.postMessage('setoption name Skill Level value 20');
+    } else {
+      engine.postMessage('setoption name Skill Level value 0');
+    }
+    
+    engine.postMessage('go depth ' + depth);
+  } else {
+    if (checkers.isGameOver()) return;
+    updateTurnUI();
+    
+    setTimeout(() => {
+      let depth = 4;
+      if (currentDifficulty === 'amador') depth = 2;
+      if (currentDifficulty === 'semi') depth = 4;
+      if (currentDifficulty === 'pro') depth = 6;
+      
+      const bestMove = checkers.getBestMove(depth);
+      if (bestMove) {
+        checkers.move(bestMove);
+        animateMove(bestMove.from, bestMove.to, () => {
+          syncBoard();
+          checkGameOver();
+          triggerEngine();
+        });
+      }
+    }, 100);
+  }
+}
+
+function updateTurnUI() {
+  const title = document.getElementById('turn-title')!;
+  const subtitle = document.getElementById('turn-subtitle')!;
+  const historyList = document.getElementById('history-list')!;
+  
+  const gameRef = activeGame === 'chess' ? chess : checkers;
+  const turnColor = gameRef.turn();
+  
+  if (activeGame === 'chess') {
+    historyList.innerText = chess.pgn() || 'Nenhum lance ainda.';
+  } else {
+    historyList.innerText = 'Damas em andamento...';
+  }
+  
+  const isGameOver = activeGame === 'chess' ? (chess.isCheckmate() || chess.isDraw()) : checkers.isGameOver();
+  
+  if (timeW <= 0 || timeB <= 0) {
+    title.innerText = 'Fim de Jogo';
+    subtitle.innerText = 'Tempo Esgotado.';
+  } else if (isGameOver) {
+    title.innerText = 'Fim de Jogo';
+    subtitle.innerText = activeGame === 'chess' ? (chess.isCheckmate() ? 'Xeque-mate!' : 'Empate.') : 'Sem lances válidos!';
+  } else if (gameMode === 'friend') {
+    title.innerText = 'Sua vez';
+    subtitle.innerText = turnColor === 'w' ? 'Brancas jogam.' : 'Pretas jogam.';
+  } else if (turnColor === playerColor) {
+    title.innerText = 'Sua vez';
+    subtitle.innerText = turnColor === 'w' ? 'Brancas jogam.' : 'Pretas jogam.';
+  } else {
+    title.innerText = 'Pensando...';
+    subtitle.innerText = 'Oponente (' + currentDifficulty + ') está jogando.';
+  }
+  updateClocksUI();
+}
+
+function checkGameOver() {
+  updateTurnUI();
+  const isGameOver = activeGame === 'chess' ? (chess.isCheckmate() || chess.isDraw()) : checkers.isGameOver();
+  if (isGameOver) {
+    isPlaying = false;
+    stopClock();
+    showAlert('GAME OVER');
+  }
+}
+
+function showAlert(text: string) {
+  const alertCenter = document.getElementById('alert-center')!;
+  alertCenter.innerText = text;
+  alertCenter.classList.add('show');
+  setTimeout(() => {
+    alertCenter.classList.remove('show');
+  }, 4000);
+}
+
+// Piece Generation (GLTF Models)
+const piecesGroup = new THREE.Group();
+scene.add(piecesGroup);
+const pieceMeshes = new Map<string, THREE.Group | THREE.Mesh>();
+
+let loadedPieces: Record<string, Record<string, THREE.Object3D>> = {
+  w: {},
+  b: {}
+};
+
+const loader = new GLTFLoader();
+loader.load('/chess.glb', (gltf) => {
+  const model = gltf.scene;
+  
+  // Extract base pieces
+  const extractPiece = (name: string) => {
+    const obj = model.getObjectByName(name);
+    if (!obj) return new THREE.Group();
+    const clone = obj.clone();
+    
+    // To prevent breaking relative positions of children (like the glass spheres),
+    // we don't force clone.position to 0,0,0. Instead, we find the visual center
+    // of the whole assembly and shift it inside a pivot group.
+    
+    // Update world matrices to ensure accurate bounding box
+    clone.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(clone);
+    const center = box.getCenter(new THREE.Vector3());
+    const min = box.min;
+    
+    const pivot = new THREE.Group();
+    
+    // Shift the clone so the center bottom is at the pivot's origin
+    clone.position.x -= center.x;
+    clone.position.y -= min.y;
+    clone.position.z -= center.z;
+    
+    pivot.add(clone);
+    return pivot;
+  };
+  
+  // We only need one prototype of each to clone later
+  loadedPieces.w = {
+    k: extractPiece('King_W'),
+    q: extractPiece('Queen_W'),
+    r: extractPiece('Castle_W1'),
+    n: extractPiece('Knight_W1'),
+    b: extractPiece('Bishop_W1'),
+    p: extractPiece('Pawn_Body_W1')
+  };
+  
+  loadedPieces.b = {
+    k: extractPiece('King_B'),
+    q: extractPiece('Queen_B'),
+    r: extractPiece('Castle_B1'),
+    n: extractPiece('Knight_B1'),
+    b: extractPiece('Bishop_B1'),
+    p: extractPiece('Pawn_Body_B1')
+  };
+  
+  // Scale factor: A Beautiful Game squares are ~0.0945 units, ours are 1.0. 
+  // Let's scale up pieces by ~10.5
+  piecesGroup.scale.set(10.5, 10.5, 10.5);
+  // Adjust pieceGroup Y position slightly if they sink or float
+  piecesGroup.position.y = 0.2; 
+
+  document.getElementById('loading-screen')!.style.display = 'none';
+  startGame();
+});
+
+function syncBoard() {
+  piecesGroup.clear();
+  pieceMeshes.clear();
+
+  if (activeGame === 'chess') {
+    const board = chess.board();
+    for (let rank = 0; rank < 8; rank++) {
+      for (let file = 0; file < 8; file++) {
+        const piece = board[rank][file];
+        if (piece) {
+          const prototype = loadedPieces[piece.color][piece.type];
+          if (!prototype) continue;
+          
+          const mesh = prototype.clone();
+          
+          const x = (file + 0.5) / 10.5;
+          const z = (rank + 0.5) / 10.5; 
+          
+          mesh.position.set(x, 0, z);
+          
+          if (piece.type === 'n') {
+            mesh.rotation.y = Math.PI;
+          }
+
+          const square = String.fromCharCode(97 + file) + (8 - rank);
+          
+          mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              child.userData = { square, piece: piece.type, color: piece.color };
+            }
+          });
+          
+          mesh.userData = { square, piece: piece.type, color: piece.color };
+          
+          piecesGroup.add(mesh);
+          pieceMeshes.set(square, mesh);
+        }
+      }
+    }
+  } else {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = checkers.board[r][c];
+        if (piece) {
+          // Use Pawn for Men, Queen for King
+          const type = piece.type === 'k' ? 'q' : 'p';
+          const prototype = loadedPieces[piece.color][type];
+          if (!prototype) continue;
+          
+          const mesh = prototype.clone();
+          
+          const x = (c + 0.5) / 10.5;
+          const z = (r + 0.5) / 10.5;
+          
+          mesh.position.set(x, 0, z);
+          
+          const sq = checkers.rcToSq(r, c);
+          
+          mesh.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              child.userData = { square: sq, piece: type, color: piece.color };
+            }
+          });
+          
+          mesh.userData = { square: sq, piece: type, color: piece.color };
+          pieceMeshes.set(sq, mesh);
+          piecesGroup.add(mesh);
+        }
+      }
+    }
+  }
+}
+
+// Raycasting (Interaction)
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedSquare: string | null = null;
+const highlightMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.5 });
+let highlightMesh: THREE.Mesh | null = null;
+
+window.addEventListener('click', (event) => {
+  if (!isPlaying) return;
+  const turnColor = activeGame === 'chess' ? chess.turn() : checkers.turn();
+  const isPlayerTurn = gameMode === 'friend' ? true : turnColor === playerColor;
+  if (!isPlayerTurn) return;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects([...piecesGroup.children, ...boardGroup.children]);
+
+  if (intersects.length > 0) {
+    const object = intersects[0].object as THREE.Mesh;
+    let clickedSquare: string | null = null;
+
+    if (object.userData.square) {
+      clickedSquare = object.userData.square;
+    } else {
+      const x = Math.floor(object.position.x);
+      const z = Math.floor(object.position.z);
+      clickedSquare = String.fromCharCode(97 + x) + (8 - z);
+    }
+
+    if (selectedSquare) {
+      const moves = activeGame === 'chess' ? chess.moves({ square: selectedSquare as any, verbose: true }) : checkers.moves({ square: selectedSquare });
+      const isMove = activeGame === 'chess' 
+        ? (moves as any[]).find(m => m.to === clickedSquare)
+        : (moves as string[]).includes(clickedSquare);
+
+      if (isMove) {
+          animateMove(selectedSquare, clickedSquare, () => {
+            const moveResult = activeGame === 'chess' 
+              ? chess.move({ from: selectedSquare!, to: clickedSquare, promotion: 'q' })
+              : checkers.move({ from: selectedSquare!, to: clickedSquare });
+    
+            if (moveResult) {
+              if (gameMode === 'online' && conn) {
+                conn.send({ type: 'move', from: selectedSquare, to: clickedSquare });
+              }
+              
+              syncBoard();
+              updateTurnUI();
+              switchClock();
+              
+              if (gameMode === 'ai' && playerColor !== (activeGame === 'chess' ? chess.turn() : checkers.turn())) {
+                triggerEngine();
+              }
+            }
+            
+            selectedSquare = null;
+            removeHighlight();
+          });
+      } else {
+        const piece = activeGame === 'chess' ? chess.get(clickedSquare as any) : checkers.get(clickedSquare);
+        if (piece && (gameMode === 'friend' ? piece.color === turnColor : piece.color === playerColor)) {
+          selectedSquare = clickedSquare;
+          highlightSquare(selectedSquare);
+        } else {
+          selectedSquare = null;
+          removeHighlight();
+        }
+      }
+    } else {
+      const piece = activeGame === 'chess' ? chess.get(clickedSquare as any) : checkers.get(clickedSquare);
+      if (piece && (gameMode === 'friend' ? piece.color === turnColor : piece.color === playerColor)) {
+        selectedSquare = clickedSquare;
+        highlightSquare(selectedSquare);
+      }
+    }
+  } else {
+    selectedSquare = null;
+    removeHighlight();
+  }
+});
+
+function highlightSquare(square: string) {
+  removeHighlight();
+  const file = square.charCodeAt(0) - 97;
+  const rank = 8 - parseInt(square[1]);
+  highlightMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), highlightMat);
+  highlightMesh.rotation.x = -Math.PI / 2;
+  highlightMesh.position.set(file + 0.5, 0.205, rank + 0.5);
+  scene.add(highlightMesh);
+}
+
+function removeHighlight() {
+  if (highlightMesh) {
+    scene.remove(highlightMesh);
+    highlightMesh = null;
+  }
+}
+
+function animateMove(from: string, to: string, callback: () => void) {
+  const mesh = pieceMeshes.get(from);
+  const targetMesh = pieceMeshes.get(to);
+
+  if (!mesh) {
+    callback();
+    return;
+  }
+
+  // Calculate target X, Z coordinates
+  const file = to.charCodeAt(0) - 97;
+  const rank = 8 - parseInt(to[1]);
+  const x = (file + 0.5) / 10.5;
+  const z = (rank + 0.5) / 10.5;
+
+  const timeline = gsap.timeline({ onComplete: callback });
+
+  if (targetMesh) {
+    // Sink the captured piece
+    timeline.to(targetMesh.position, { y: -0.5, duration: 0.3, ease: 'power2.in' }, 0);
+    timeline.to(targetMesh.scale, { x: 0, y: 0, z: 0, duration: 0.3 }, 0);
+  }
+
+  // Slide the moving piece
+  // We add a tiny hop (y axis) for a cinematic feel
+  timeline.to(mesh.position, {
+    x: x,
+    z: z,
+    duration: 0.5,
+    ease: 'power2.inOut'
+  }, 0);
+  
+  // The hop
+  timeline.to(mesh.position, {
+    y: 0.15,
+    duration: 0.25,
+    ease: 'power1.out',
+    yoyo: true,
+    repeat: 1
+  }, 0);
+}
+
+// --- CLOCK LOGIC ---
+let timeW = 600;
+let timeB = 600;
+let clockInterval: number | null = null;
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function startClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  clockInterval = window.setInterval(() => {
+    if (!isPlaying) return;
+    const turnColor = activeGame === 'chess' ? chess.turn() : checkers.turn();
+    if (turnColor === 'w') {
+      timeW--;
+      if (timeW <= 0) handleTimeout();
+    } else {
+      timeB--;
+      if (timeB <= 0) handleTimeout();
+    }
+    updateClocksUI();
+  }, 1000);
+}
+
+function stopClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  clockInterval = null;
+}
+
+function handleTimeout() {
+  isPlaying = false;
+  stopClock();
+  updateClocksUI();
+  updateTurnUI();
+  showAlert('TEMPO ESGOTADO');
+}
+
+function updateClocksUI() {
+  const cw = document.getElementById('clock-w');
+  const cb = document.getElementById('clock-b');
+  if (!cw || !cb) return;
+
+  cw.querySelector('.time')!.textContent = formatTime(timeW);
+  cb.querySelector('.time')!.textContent = formatTime(timeB);
+  
+  if (isPlaying) {
+    switchClock();
+  } else {
+    cw.classList.remove('active');
+    cb.classList.remove('active');
+  }
+}
+// -------------------
+// PeerJS Online Multiplayer
+let peer: Peer | null = null;
+let conn: DataConnection | null = null;
+let isHost = false;
+
+function setupOnlineUI() {
+  const btnHost = document.getElementById('btn-host') as HTMLButtonElement;
+  const btnJoin = document.getElementById('btn-join') as HTMLButtonElement;
+  const inputJoin = document.getElementById('input-join') as HTMLInputElement;
+  const statusTxt = document.getElementById('online-status')!;
+
+  btnHost.addEventListener('click', () => {
+    btnHost.disabled = true;
+    statusTxt.textContent = 'Gerando código...';
+    
+    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    peer = new Peer('gmaster-' + code);
+    
+    peer.on('open', () => {
+      statusTxt.innerHTML = `Criado! Envie o código: <strong style="color:var(--accent);font-size:16px;">${code}</strong>`;
+      isHost = true;
+    });
+
+    peer.on('connection', (c) => {
+      if (conn) { c.close(); return; }
+      conn = c;
+      setupConnection(conn);
+      statusTxt.textContent = 'Conectado! O jogo vai começar...';
+      
+      setTimeout(() => {
+         startGame(true); // isHost starting
+         conn?.send({
+           type: 'init',
+           game: activeGame,
+           color: playerColor === 'w' ? 'b' : 'w' // give client opposite color
+         });
+      }, 1000);
+    });
+    
+    peer.on('error', (err) => {
+      statusTxt.textContent = 'Erro: ' + err.message;
+      btnHost.disabled = false;
+    });
+  });
+
+  btnJoin.addEventListener('click', () => {
+    const code = inputJoin.value.trim().toUpperCase();
+    if (!code) return;
+    
+    btnJoin.disabled = true;
+    statusTxt.textContent = 'Conectando...';
+    
+    peer = new Peer();
+    
+    peer.on('open', () => {
+      conn = peer!.connect('gmaster-' + code);
+      
+      conn.on('open', () => {
+        isHost = false;
+        setupConnection(conn!);
+        statusTxt.textContent = 'Conectado! Aguardando o Host...';
+      });
+      
+      conn.on('error', () => {
+         statusTxt.textContent = 'Erro ao conectar.';
+         btnJoin.disabled = false;
+      });
+    });
+  });
+}
+
+function setupConnection(c: DataConnection) {
+  c.on('data', (data: any) => {
+    if (data.type === 'init') {
+      activeGame = data.game;
+      playerColor = data.color;
+      
+      document.querySelectorAll('#game-control .seg-btn').forEach((b: any) => {
+        b.classList.toggle('active', b.dataset.game === activeGame);
+      });
+      
+      startGame(false); // client starting
+    } else if (data.type === 'move') {
+       animateMove(data.from, data.to, () => {
+         if (activeGame === 'chess') {
+           chess.move({ from: data.from, to: data.to, promotion: 'q' });
+         } else {
+           checkers.move({ from: data.from, to: data.to });
+         }
+         syncBoard();
+         updateTurnUI();
+         switchClock();
+       });
+    }
+  });
+
+  c.on('close', () => {
+     document.getElementById('online-status')!.textContent = 'Desconectado do oponente.';
+     conn = null;
+  });
+}
+
+function switchClock() {
+  const turnColor = activeGame === 'chess' ? chess.turn() : checkers.turn();
+  const cw = document.getElementById('clock-w');
+  const cb = document.getElementById('clock-b');
+  if (turnColor === 'w') {
+    cw?.classList.add('active');
+    cb?.classList.remove('active');
+  } else {
+    cb?.classList.add('active');
+    cw?.classList.remove('active');
+  }
+}
+
+setupOnlineUI();
+// -------------------
+
+// UI Events
+let selectedColorOpt = 'w';
+
+document.getElementById('game-control')?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest('.seg-btn') as HTMLElement;
+  if (btn) {
+    document.querySelectorAll('#game-control .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeGame = (btn.dataset.game as 'chess' | 'checkers') || 'chess';
+    
+    // Now Checkers has an AI, no need to force 'friend' mode!
+    const modeLabel = document.getElementById('mode-control')!;
+    modeLabel.style.opacity = '1';
+    modeLabel.style.pointerEvents = 'auto';
+
+    startGame();
+  }
+});
+
+document.getElementById('mode-control')?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest('.seg-btn') as HTMLElement;
+  if (btn) {
+    document.querySelectorAll('#mode-control .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    gameMode = btn.dataset.mode || 'ai';
+    
+    const diffLabel = document.getElementById('diff-label')!;
+    const diffControl = document.getElementById('diff-control')!;
+    const onlinePanel = document.getElementById('online-panel')!;
+    
+    if (gameMode === 'online') {
+      onlinePanel.style.display = 'block';
+      diffLabel.style.opacity = '0.3';
+      diffControl.style.opacity = '0.3';
+      diffControl.style.pointerEvents = 'none';
+    } else {
+      onlinePanel.style.display = 'none';
+      if (gameMode === 'friend') {
+        diffLabel.style.opacity = '0.3';
+        diffControl.style.opacity = '0.3';
+        diffControl.style.pointerEvents = 'none';
+      } else {
+        diffLabel.style.opacity = '1';
+        diffControl.style.opacity = '1';
+        diffControl.style.pointerEvents = 'auto';
+      }
+    }
+  }
+});
+
+document.getElementById('diff-control')?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest('.seg-btn') as HTMLElement;
+  if (btn) {
+    document.querySelectorAll('#diff-control .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.diff || 'amador';
+  }
+});
+
+document.getElementById('color-control')?.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest('.seg-btn') as HTMLElement;
+  if (btn) {
+    document.querySelectorAll('#color-control .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedColorOpt = btn.dataset.color || 'w';
+  }
+});
+
+document.getElementById('btn-new')?.addEventListener('click', () => {
+  startGame();
+});
+
+document.getElementById('btn-flip')?.addEventListener('click', () => {
+  const targetZ = -camera.position.z + 8; // Center is at 4
+  const targetX = -camera.position.x + 8; // Center is at 4
+  
+  gsap.to(camera.position, {
+    x: targetX,
+    z: targetZ,
+    duration: 1.5,
+    ease: 'power2.inOut',
+    onUpdate: () => controls.update()
+  });
+});
+
+document.getElementById('btn-undo')?.addEventListener('click', () => {
+  if (!isPlaying) return;
+  if (activeGame === 'checkers') {
+     // No undo implemented for checkers yet
+     return;
+  }
+  // Undo twice to get back to player's turn
+  chess.undo();
+  if (chess.turn() !== playerColor) {
+    chess.undo();
+  }
+  syncBoard();
+  updateTurnUI();
+  selectedSquare = null;
+  removeHighlight();
+});
+
+document.getElementById('btn-pgn')?.addEventListener('click', () => {
+  navigator.clipboard.writeText(chess.pgn());
+  showAlert('PGN COPIADO');
+});
+
+function startGame(fromOnline = false) {
+  if (gameMode === 'online' && !fromOnline && !isHost) {
+    // se estiver no modo online, só o Host ou o sistema pode iniciar
+    return;
+  }
+  
+  console.log('Starting game with difficulty:', currentDifficulty);
+  
+  if (gameMode !== 'online') {
+    if (selectedColorOpt === 'r') {
+      playerColor = Math.random() > 0.5 ? 'w' : 'b';
+    } else {
+      playerColor = selectedColorOpt;
+    }
+  }
+  
+  isPlaying = true;
+  if (activeGame === 'chess') chess.reset();
+  else checkers.reset();
+  
+  syncBoard();
+  
+  timeW = 600;
+  timeB = 600;
+  startClock();
+  
+  updateTurnUI();
+  
+  // Orient camera based on color
+  if (playerColor === 'b') {
+    camera.position.set(4, 8, -4);
+  } else {
+    camera.position.set(4, 8, 12);
+  }
+  controls.target.set(4, 0, 4);
+  controls.update();
+  
+  if (gameMode === 'ai' && playerColor === 'b') {
+    triggerEngine();
+  }
+}
+
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  updateCameraOffset();
+});
+
+// Menu Hambúrguer Logic
+const menuBtn = document.getElementById('menu-btn');
+const closeBtn = document.getElementById('close-menu-btn');
+const rightPanel = document.getElementById('right-panel');
+
+menuBtn?.addEventListener('click', () => {
+  rightPanel?.classList.add('open');
+});
+
+closeBtn?.addEventListener('click', () => {
+  rightPanel?.classList.remove('open');
+});
+
+// Render Loop
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
