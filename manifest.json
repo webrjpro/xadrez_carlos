@@ -1,0 +1,17 @@
+{
+  "name": "Grandmaster 3D",
+  "short_name": "Grandmaster",
+  "description": "Jogue Xadrez e Damas 3D com inteligência artificial, modo local e multiplayer online.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    {
+      "src": "icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
