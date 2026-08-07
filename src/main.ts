@@ -380,6 +380,20 @@ loader.load(
   (gltf) => {
     const model = gltf.scene;
     
+    // Se for celular, simplifica os materiais de vidro/físicos para evitar estouro de memória (Ah, não!)
+    if (isMobile) {
+      model.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const isWhite = child.name.includes('_W') || (child.parent && child.parent.name.includes('_W'));
+          child.material = new THREE.MeshStandardMaterial({
+            color: isWhite ? 0xe2e8f0 : 0x1e293b,
+            roughness: 0.3,
+            metalness: 0.1
+          });
+        }
+      });
+    }
+    
     // Extract base pieces
     const extractPiece = (name: string) => {
       const obj = model.getObjectByName(name);
