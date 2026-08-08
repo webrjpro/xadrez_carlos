@@ -219,22 +219,74 @@ const backLight = new THREE.DirectionalLight(0xaaccff, 0.8);
 backLight.position.set(-5, 5, -5);
 scene.add(backLight);
 
-// Board Generation
+// Luxury Board Generation
 const boardGroup = new THREE.Group();
 scene.add(boardGroup);
 
 const squareSize = 1;
-const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: 0.7, metalness: 0.1 });
-const lightMat = new THREE.MeshStandardMaterial({ color: 0xb5a085, roughness: 0.8, metalness: 0.05 });
-const borderMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.9, metalness: 0.1 });
 
-// Border
-const borderGeom = new THREE.BoxGeometry(8.6, 0.4, 8.6);
+// Gerador de textura processual de mármore leve
+function createMarbleTexture(baseColor: string, veinColor: string): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, 512, 512);
+  
+  for (let i = 0; i < 300; i++) {
+    ctx.beginPath();
+    let x = Math.random() * 512;
+    let y = Math.random() * 512;
+    ctx.moveTo(x, y);
+    for (let j = 0; j < 6; j++) {
+      x += (Math.random() - 0.5) * 80;
+      y += (Math.random() - 0.5) * 80;
+      ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = veinColor;
+    ctx.lineWidth = Math.random() * 1.5;
+    ctx.globalAlpha = Math.random() * 0.4;
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+const darkMarbleTex = createMarbleTexture('#0a0a0a', '#333333');
+const lightMarbleTex = createMarbleTexture('#e8e3d9', '#b5a38c');
+
+const darkMat = new THREE.MeshPhysicalMaterial({ 
+  map: darkMarbleTex, color: 0x111111, metalness: 0.1, roughness: 0.05, clearcoat: 1.0, clearcoatRoughness: 0.1 
+});
+const lightMat = new THREE.MeshPhysicalMaterial({ 
+  map: lightMarbleTex, color: 0xffffff, metalness: 0.1, roughness: 0.05, clearcoat: 1.0, clearcoatRoughness: 0.1 
+});
+const borderMat = new THREE.MeshPhysicalMaterial({ 
+  color: 0x050505, metalness: 0.3, roughness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.05 
+});
+const goldMat = new THREE.MeshStandardMaterial({
+  color: 0xd4af37, metalness: 1.0, roughness: 0.2
+});
+
+// Base do Tabuleiro (Laca Preta)
+const borderGeom = new THREE.BoxGeometry(9.2, 0.6, 9.2);
 const borderMesh = new THREE.Mesh(borderGeom, borderMat);
-borderMesh.position.set(4, -0.2, 4);
+borderMesh.position.set(4, -0.3, 4);
 borderMesh.receiveShadow = true;
 boardGroup.add(borderMesh);
 
+// Frisos Dourados (Ouro Metálico)
+const goldThickness = 0.08;
+const trimGeom1 = new THREE.BoxGeometry(8.8, 0.2, goldThickness);
+const trimN = new THREE.Mesh(trimGeom1, goldMat); trimN.position.set(4, 0.05, -0.44);
+const trimS = new THREE.Mesh(trimGeom1, goldMat); trimS.position.set(4, 0.05, 8.44);
+
+const trimGeom2 = new THREE.BoxGeometry(goldThickness, 0.2, 8.8 + goldThickness * 2);
+const trimE = new THREE.Mesh(trimGeom2, goldMat); trimE.position.set(8.44, 0.05, 4);
+const trimW = new THREE.Mesh(trimGeom2, goldMat); trimW.position.set(-0.44, 0.05, 4);
+boardGroup.add(trimN, trimS, trimE, trimW);
+
+// Casas de Mármore
 const boardGeometry = new THREE.BoxGeometry(squareSize, 0.2, squareSize);
 
 for (let rank = 0; rank < 8; rank++) {
