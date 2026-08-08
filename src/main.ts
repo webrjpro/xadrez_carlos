@@ -131,9 +131,20 @@ try {
   });
 } catch (e) {
   document.getElementById('loading-screen')!.innerHTML = `
-    <div style="text-align: center; padding: 2rem;">
-      <h1 style="color: #ef4444; font-family: 'Playfair Display', serif; margin-bottom: 1rem;">Gráficos 3D Não Suportados</h1>
-      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Seu navegador não suporta gráficos 3D ou a <b>Aceleração de Hardware</b> está desativada no seu Edge/Chrome.<br><br>Por favor, ative a aceleração de hardware nas configurações do navegador ou tente usar outro navegador.</p>
+    <div style="text-align: center; padding: 2.5rem; max-width: 450px; margin: 0 auto; background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem;">⚙️</div>
+      <h2 style="font-family: 'Playfair Display', serif; color: var(--accent); margin-bottom: 1rem; font-size: 1.8rem;">Ajuste Necessário</h2>
+      <p style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.5rem;">
+        Para rodar os gráficos 3D incríveis do jogo, o seu navegador precisa de uma pequena permissão chamada <b>Aceleração de Hardware</b>.
+      </p>
+      <div style="background: var(--bg-input); padding: 1rem; border-radius: 10px; text-align: left; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
+        <b>Como ativar rápido:</b><br><br>
+        1. Vá nas <b>Configurações</b> do seu navegador.<br>
+        2. Busque por <b>"Sistema e Desempenho"</b>.<br>
+        3. Ative <b>"Usar aceleração de hardware"</b>.<br>
+        4. Clique em reiniciar e volte aqui!
+      </div>
+      <button onclick="location.reload()" style="background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: opacity 0.2s;">Tentar Novamente</button>
     </div>
   `;
   throw e;
