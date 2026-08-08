@@ -403,12 +403,28 @@ MeshoptDecoder.ready.then(() => {
       if (!obj) return new THREE.Group();
       const clone = obj.clone();
       
+      // Reset local transforms that came from Blender's scene placement
+      clone.position.set(0, 0, 0);
+      clone.rotation.set(0, 0, 0);
+      clone.scale.set(1, 1, 1);
       clone.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(clone);
+      
+      // Calculate precise bounding box of actual meshes only (ignoring lights/cameras)
+      const box = new THREE.Box3();
+      clone.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+          const meshBox = child.geometry.boundingBox.clone();
+          meshBox.applyMatrix4(child.matrixWorld);
+          box.union(meshBox);
+        }
+      });
+      
       const center = box.getCenter(new THREE.Vector3());
       const min = box.min;
       
       const pivot = new THREE.Group();
+      // Shift clone so the pivot origin is at the bottom-center of the meshes
       clone.position.x -= center.x;
       clone.position.y -= min.y;
       clone.position.z -= center.z;
