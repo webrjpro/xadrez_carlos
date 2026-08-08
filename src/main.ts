@@ -456,8 +456,8 @@ MeshoptDecoder.ready.then(() => {
     };
     
     loadedPieces.w = {
-      k: extractPiece('King_W'),
-      q: extractPiece('Queen_W'),
+      k: extractPiece('Queen_W'), // Trocado na origem do modelo 3D
+      q: extractPiece('King_W'),
       r: extractPiece('Castle_W1'),
       n: extractPiece('Knight_W1'),
       b: extractPiece('Bishop_W1'),
@@ -465,8 +465,8 @@ MeshoptDecoder.ready.then(() => {
     };
     
     loadedPieces.b = {
-      k: extractPiece('King_B'),
-      q: extractPiece('Queen_B'),
+      k: extractPiece('Queen_B'), // Trocado na origem do modelo 3D
+      q: extractPiece('King_B'),
       r: extractPiece('Castle_B1'),
       n: extractPiece('Knight_B1'),
       b: extractPiece('Bishop_B1'),
@@ -506,8 +506,38 @@ MeshoptDecoder.ready.then(() => {
 );
 });
 
+const piecePool: Record<string, THREE.Group[]> = {};
+
+function getPieceMesh(color: string, type: string): THREE.Group {
+  const key = color + type;
+  if (!piecePool[key]) piecePool[key] = [];
+  
+  // Tenta encontrar uma peça que não está em uso
+  const unused = piecePool[key].find(m => !m.visible);
+  if (unused) {
+    unused.visible = true;
+    return unused;
+  }
+  
+  // Se não tiver, clona uma nova (só ocorre na 1ª vez ou em promoções)
+  const prototype = loadedPieces[color][type];
+  const mesh = prototype.clone() as THREE.Group;
+  mesh.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  piecesGroup.add(mesh);
+  piecePool[key].push(mesh);
+  return mesh;
+}
+
 function syncBoard() {
-  piecesGroup.clear();
+  // Esconde todas as peças do pool
+  for (const key in piecePool) {
+    piecePool[key].forEach(m => { m.visible = false; m.userData = {}; });
+  }
   pieceMeshes.clear();
 
   if (activeGame === 'chess') {
@@ -516,10 +546,7 @@ function syncBoard() {
       for (let file = 0; file < 8; file++) {
         const piece = board[rank][file];
         if (piece) {
-          const prototype = loadedPieces[piece.color][piece.type];
-          if (!prototype) continue;
-          
-          const mesh = prototype.clone();
+          const mesh = getPieceMesh(piece.color, piece.type);
           
           const x = (file + 0.5) / 10.5;
           const z = (rank + 0.5) / 10.5; 
@@ -528,21 +555,20 @@ function syncBoard() {
           
           if (piece.type === 'n') {
             mesh.rotation.y = Math.PI;
+          } else {
+            mesh.rotation.y = 0;
           }
 
           const square = String.fromCharCode(97 + file) + (8 - rank);
           
           mesh.traverse((child) => {
             if (child instanceof THREE.Mesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
               child.userData = { square, piece: piece.type, color: piece.color };
             }
           });
           
           mesh.userData = { square, piece: piece.type, color: piece.color };
           
-          piecesGroup.add(mesh);
           pieceMeshes.set(square, mesh);
         }
       }
@@ -554,29 +580,25 @@ function syncBoard() {
         if (piece) {
           // Use Pawn for Men, Queen for King
           const type = piece.type === 'k' ? 'q' : 'p';
-          const prototype = loadedPieces[piece.color][type];
-          if (!prototype) continue;
-          
-          const mesh = prototype.clone();
+          const mesh = getPieceMesh(piece.color, type);
           
           const x = (c + 0.5) / 10.5;
           const z = (r + 0.5) / 10.5;
           
           mesh.position.set(x, 0, z);
+          mesh.rotation.y = 0;
           
           const sq = checkers.rcToSq(r, c);
           
           mesh.traverse((child) => {
             if (child instanceof THREE.Mesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-              child.userData = { square: sq, piece: type, color: piece.color };
+              child.userData = { square: sq, piece: piece.type, color: piece.color, isCheckers: true };
             }
           });
           
-          mesh.userData = { square: sq, piece: type, color: piece.color };
+          mesh.userData = { square: sq, piece: piece.type, color: piece.color, isCheckers: true };
+          
           pieceMeshes.set(sq, mesh);
-          piecesGroup.add(mesh);
         }
       }
     }
