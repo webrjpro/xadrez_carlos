@@ -121,12 +121,23 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 // Three.js Setup
 const isMobile = window.innerWidth <= 768;
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas')!;
-const renderer = new THREE.WebGLRenderer({ 
-  canvas, 
-  antialias: !isMobile, // Desliga antialias no celular
-  powerPreference: isMobile ? "low-power" : "default",
-  precision: isMobile ? "mediump" : "highp" // Usa precisão menor de shader no celular
-});
+let renderer: THREE.WebGLRenderer;
+try {
+  renderer = new THREE.WebGLRenderer({ 
+    canvas, 
+    antialias: !isMobile, // Desliga antialias no celular
+    powerPreference: isMobile ? "low-power" : "default",
+    precision: isMobile ? "mediump" : "highp" // Usa precisão menor de shader no celular
+  });
+} catch (e) {
+  document.getElementById('loading-screen')!.innerHTML = `
+    <div style="text-align: center; padding: 2rem;">
+      <h1 style="color: #ef4444; font-family: 'Playfair Display', serif; margin-bottom: 1rem;">Gráficos 3D Não Suportados</h1>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Seu navegador não suporta gráficos 3D ou a <b>Aceleração de Hardware</b> está desativada no seu Edge/Chrome.<br><br>Por favor, ative a aceleração de hardware nas configurações do navegador ou tente usar outro navegador.</p>
+    </div>
+  `;
+  throw e;
+}
 renderer.setSize(window.innerWidth, window.innerHeight);
 // Força pixelRatio 1 no mobile (salva MUITA memória RAM de vídeo)
 renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
@@ -460,7 +471,7 @@ MeshoptDecoder.ready.then(() => {
   // onProgress — atualiza barra de carregamento
   (xhr) => {
     if (xhr.lengthComputable) {
-      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      const pct = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
       const bar = document.getElementById('loading-bar');
       const txt = document.getElementById('loading-percent');
       if (bar) bar.style.width = pct + '%';
