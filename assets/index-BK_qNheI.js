@@ -4160,109 +4160,149 @@ a=extmap-allow-mixed`)!==-1){let n=t.sdp.split(`
     isWebRTCSupported:${this.isWebRTCSupported()}
     isBrowserSupported:${this.isBrowserSupported()}
     isUnifiedPlanSupported:${this.isUnifiedPlanSupported()}`}constructor(){this.isIOS=typeof navigator<`u`&&[`iPad`,`iPhone`,`iPod`].includes(navigator.platform),this.supportedBrowsers=[`firefox`,`chrome`,`safari`],this.minFirefoxVersion=59,this.minChromeVersion=72,this.minSafariVersion=605}},_y=e=>!e||/^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/.test(e),vy=()=>Math.random().toString(36).slice(2),yy={iceServers:[{urls:`stun:stun.l.google.com:19302`},{urls:[`turn:eu-0.turn.peerjs.com:3478`,`turn:us-0.turn.peerjs.com:3478`],username:`peerjs`,credential:`peerjsp`}],sdpSemantics:`unified-plan`},by=new class extends py{noop(){}blobToArrayBuffer(e,t){let n=new FileReader;return n.onload=function(e){e.target&&t(e.target.result)},n.readAsArrayBuffer(e),n}binaryStringToArrayBuffer(e){let t=new Uint8Array(e.length);for(let n=0;n<e.length;n++)t[n]=e.charCodeAt(n)&255;return t.buffer}isSecure(){return location.protocol===`https:`}constructor(...e){super(...e),this.CLOUD_HOST=`0.peerjs.com`,this.CLOUD_PORT=443,this.chunkedBrowsers={Chrome:1,chrome:1},this.defaultConfig=yy,this.browser=gy.getBrowser(),this.browserVersion=gy.getVersion(),this.pack=nv,this.unpack=tv,this.supports=function(){let e={browser:gy.isBrowserSupported(),webRTC:gy.isWebRTCSupported(),audioVideo:!1,data:!1,binaryBlob:!1,reliable:!1};if(!e.webRTC)return e;let t;try{t=new RTCPeerConnection(yy),e.audioVideo=!0;let n;try{n=t.createDataChannel(`_PEERJSTEST`,{ordered:!0}),e.data=!0,e.reliable=!!n.ordered;try{n.binaryType=`blob`,e.binaryBlob=!gy.isIOS}catch{}}catch{}finally{n&&n.close()}}catch{}finally{t&&t.close()}return e}(),this.validateId=_y,this.randomToken=vy}},xy=`PeerJS: `,$=new class{get logLevel(){return this._logLevel}set logLevel(e){this._logLevel=e}log(...e){this._logLevel>=3&&this._print(3,...e)}warn(...e){this._logLevel>=2&&this._print(2,...e)}error(...e){this._logLevel>=1&&this._print(1,...e)}setLogFunction(e){this._print=e}_print(e,...t){let n=[xy,...t];for(let e in n)n[e]instanceof Error&&(n[e]=`(`+n[e].name+`) `+n[e].message);e>=3?console.log(...n):e>=2?console.warn(`WARNING`,...n):e>=1&&console.error(`ERROR`,...n)}constructor(){this._logLevel=0}},Sy={},Cy=Object.prototype.hasOwnProperty,wy=`~`;function Ty(){}Object.create&&(Ty.prototype=Object.create(null),new Ty().__proto__||(wy=!1));function Ey(e,t,n){this.fn=e,this.context=t,this.once=n||!1}function Dy(e,t,n,r,i){if(typeof n!=`function`)throw TypeError(`The listener must be a function`);var a=new Ey(n,r||e,i),o=wy?wy+t:t;return e._events[o]?e._events[o].fn?e._events[o]=[e._events[o],a]:e._events[o].push(a):(e._events[o]=a,e._eventsCount++),e}function Oy(e,t){--e._eventsCount===0?e._events=new Ty:delete e._events[t]}function ky(){this._events=new Ty,this._eventsCount=0}ky.prototype.eventNames=function(){var e=[],t,n;if(this._eventsCount===0)return e;for(n in t=this._events)Cy.call(t,n)&&e.push(wy?n.slice(1):n);return Object.getOwnPropertySymbols?e.concat(Object.getOwnPropertySymbols(t)):e},ky.prototype.listeners=function(e){var t=wy?wy+e:e,n=this._events[t];if(!n)return[];if(n.fn)return[n.fn];for(var r=0,i=n.length,a=Array(i);r<i;r++)a[r]=n[r].fn;return a},ky.prototype.listenerCount=function(e){var t=wy?wy+e:e,n=this._events[t];return n?n.fn?1:n.length:0},ky.prototype.emit=function(e,t,n,r,i,a){var o=wy?wy+e:e;if(!this._events[o])return!1;var s=this._events[o],c=arguments.length,l,u;if(s.fn){switch(s.once&&this.removeListener(e,s.fn,void 0,!0),c){case 1:return s.fn.call(s.context),!0;case 2:return s.fn.call(s.context,t),!0;case 3:return s.fn.call(s.context,t,n),!0;case 4:return s.fn.call(s.context,t,n,r),!0;case 5:return s.fn.call(s.context,t,n,r,i),!0;case 6:return s.fn.call(s.context,t,n,r,i,a),!0}for(u=1,l=Array(c-1);u<c;u++)l[u-1]=arguments[u];s.fn.apply(s.context,l)}else{var d=s.length,f;for(u=0;u<d;u++)switch(s[u].once&&this.removeListener(e,s[u].fn,void 0,!0),c){case 1:s[u].fn.call(s[u].context);break;case 2:s[u].fn.call(s[u].context,t);break;case 3:s[u].fn.call(s[u].context,t,n);break;case 4:s[u].fn.call(s[u].context,t,n,r);break;default:if(!l)for(f=1,l=Array(c-1);f<c;f++)l[f-1]=arguments[f];s[u].fn.apply(s[u].context,l)}}return!0},ky.prototype.on=function(e,t,n){return Dy(this,e,t,n,!1)},ky.prototype.once=function(e,t,n){return Dy(this,e,t,n,!0)},ky.prototype.removeListener=function(e,t,n,r){var i=wy?wy+e:e;if(!this._events[i])return this;if(!t)return Oy(this,i),this;var a=this._events[i];if(a.fn)a.fn===t&&(!r||a.once)&&(!n||a.context===n)&&Oy(this,i);else{for(var o=0,s=[],c=a.length;o<c;o++)(a[o].fn!==t||r&&!a[o].once||n&&a[o].context!==n)&&s.push(a[o]);s.length?this._events[i]=s.length===1?s[0]:s:Oy(this,i)}return this},ky.prototype.removeAllListeners=function(e){var t;return e?(t=wy?wy+e:e,this._events[t]&&Oy(this,t)):(this._events=new Ty,this._eventsCount=0),this},ky.prototype.off=ky.prototype.removeListener,ky.prototype.addListener=ky.prototype.on,ky.prefixed=wy,ky.EventEmitter=ky,Sy=ky;var Ay={};fy(Ay,`ConnectionType`,()=>jy),fy(Ay,`PeerErrorType`,()=>My),fy(Ay,`BaseConnectionErrorType`,()=>Ny),fy(Ay,`DataConnectionErrorType`,()=>Py),fy(Ay,`SerializationType`,()=>Fy),fy(Ay,`SocketEventType`,()=>Iy),fy(Ay,`ServerMessageType`,()=>Ly);var jy=function(e){return e.Data=`data`,e.Media=`media`,e}({}),My=function(e){return e.BrowserIncompatible=`browser-incompatible`,e.Disconnected=`disconnected`,e.InvalidID=`invalid-id`,e.InvalidKey=`invalid-key`,e.Network=`network`,e.PeerUnavailable=`peer-unavailable`,e.SslUnavailable=`ssl-unavailable`,e.ServerError=`server-error`,e.SocketError=`socket-error`,e.SocketClosed=`socket-closed`,e.UnavailableID=`unavailable-id`,e.WebRTC=`webrtc`,e}({}),Ny=function(e){return e.NegotiationFailed=`negotiation-failed`,e.ConnectionClosed=`connection-closed`,e}({}),Py=function(e){return e.NotOpenYet=`not-open-yet`,e.MessageToBig=`message-too-big`,e}({}),Fy=function(e){return e.Binary=`binary`,e.BinaryUTF8=`binary-utf8`,e.JSON=`json`,e.None=`raw`,e}({}),Iy=function(e){return e.Message=`message`,e.Disconnected=`disconnected`,e.Error=`error`,e.Close=`close`,e}({}),Ly=function(e){return e.Heartbeat=`HEARTBEAT`,e.Candidate=`CANDIDATE`,e.Offer=`OFFER`,e.Answer=`ANSWER`,e.Open=`OPEN`,e.Error=`ERROR`,e.IdTaken=`ID-TAKEN`,e.InvalidKey=`INVALID-KEY`,e.Leave=`LEAVE`,e.Expire=`EXPIRE`,e}({}),Ry=`1.5.5`,zy=class extends Sy.EventEmitter{constructor(e,t,n,r,i,a=5e3){super(),this.pingInterval=a,this._disconnected=!0,this._messagesQueue=[];let o=e?`wss://`:`ws://`;this._baseUrl=o+t+`:`+n+r+`peerjs?key=`+i}start(e,t){this._id=e;let n=`${this._baseUrl}&id=${e}&token=${t}`;this._socket||!this._disconnected||(this._socket=new WebSocket(n+`&version=1.5.5`),this._disconnected=!1,this._socket.onmessage=e=>{let t;try{t=JSON.parse(e.data),$.log(`Server message received:`,t)}catch{$.log(`Invalid server message`,e.data);return}this.emit(Iy.Message,t)},this._socket.onclose=e=>{this._disconnected||($.log(`Socket closed.`,e),this._cleanup(),this._disconnected=!0,this.emit(Iy.Disconnected))},this._socket.onopen=()=>{this._disconnected||(this._sendQueuedMessages(),$.log(`Socket open`),this._scheduleHeartbeat())})}_scheduleHeartbeat(){this._wsPingTimer=setTimeout(()=>{this._sendHeartbeat()},this.pingInterval)}_sendHeartbeat(){if(!this._wsOpen()){$.log(`Cannot send heartbeat, because socket closed`);return}let e=JSON.stringify({type:Ly.Heartbeat});this._socket.send(e),this._scheduleHeartbeat()}_wsOpen(){return!!this._socket&&this._socket.readyState===1}_sendQueuedMessages(){let e=[...this._messagesQueue];this._messagesQueue=[];for(let t of e)this.send(t)}send(e){if(this._disconnected)return;if(!this._id){this._messagesQueue.push(e);return}if(!e.type){this.emit(Iy.Error,`Invalid message`);return}if(!this._wsOpen())return;let t=JSON.stringify(e);this._socket.send(t)}close(){this._disconnected||=(this._cleanup(),!0)}_cleanup(){this._socket&&=(this._socket.onopen=this._socket.onmessage=this._socket.onclose=null,this._socket.close(),void 0),clearTimeout(this._wsPingTimer)}},By=class{constructor(e){this.connection=e}startConnection(e){let t=this._startPeerConnection();if(this.connection.peerConnection=t,this.connection.type===jy.Media&&e._stream&&this._addTracksToConnection(e._stream,t),e.originator){let n=this.connection,r={ordered:!!e.reliable},i=t.createDataChannel(n.label,r);n._initializeDataChannel(i),this._makeOffer()}else this.handleSDP(`OFFER`,e.sdp)}_startPeerConnection(){$.log(`Creating RTCPeerConnection.`);let e=new RTCPeerConnection(this.connection.provider.options.config);return this._setupListeners(e),e}_setupListeners(e){let t=this.connection.peer,n=this.connection.connectionId,r=this.connection.type,i=this.connection.provider;$.log(`Listening for ICE candidates.`),e.onicecandidate=e=>{!e.candidate||!e.candidate.candidate||($.log(`Received ICE candidates for ${t}:`,e.candidate),i.socket.send({type:Ly.Candidate,payload:{candidate:e.candidate,type:r,connectionId:n},dst:t}))},e.oniceconnectionstatechange=()=>{switch(e.iceConnectionState){case`failed`:$.log(`iceConnectionState is failed, closing connections to `+t),this.connection.emitError(Ny.NegotiationFailed,`Negotiation of connection to `+t+` failed.`),this.connection.close();break;case`closed`:$.log(`iceConnectionState is closed, closing connections to `+t),this.connection.emitError(Ny.ConnectionClosed,`Connection to `+t+` closed.`),this.connection.close();break;case`disconnected`:$.log(`iceConnectionState changed to disconnected on the connection with `+t);break;case`completed`:e.onicecandidate=()=>{}}this.connection.emit(`iceStateChanged`,e.iceConnectionState)},$.log(`Listening for data channel`),e.ondatachannel=e=>{$.log(`Received data channel`);let r=e.channel;i.getConnection(t,n)._initializeDataChannel(r)},$.log(`Listening for remote stream`),e.ontrack=e=>{$.log(`Received remote stream`);let r=e.streams[0],a=i.getConnection(t,n);if(a.type===jy.Media){let e=a;this._addStreamToMediaConnection(r,e)}}}cleanup(){$.log(`Cleaning up PeerConnection to `+this.connection.peer);let e=this.connection.peerConnection;if(!e)return;this.connection.peerConnection=null,e.onicecandidate=e.oniceconnectionstatechange=e.ondatachannel=e.ontrack=()=>{};let t=e.signalingState!==`closed`,n=!1,r=this.connection.dataChannel;r&&(n=!!r.readyState&&r.readyState!==`closed`),(t||n)&&e.close()}async _makeOffer(){let e=this.connection.peerConnection,t=this.connection.provider;try{let n=await e.createOffer(this.connection.options.constraints);$.log(`Created offer.`),this.connection.options.sdpTransform&&typeof this.connection.options.sdpTransform==`function`&&(n.sdp=this.connection.options.sdpTransform(n.sdp)||n.sdp);try{await e.setLocalDescription(n),$.log(`Set localDescription:`,n,`for:${this.connection.peer}`);let r={sdp:n,type:this.connection.type,connectionId:this.connection.connectionId,metadata:this.connection.metadata};if(this.connection.type===jy.Data){let e=this.connection;r={...r,label:e.label,reliable:e.reliable,serialization:e.serialization}}t.socket.send({type:Ly.Offer,payload:r,dst:this.connection.peer})}catch(e){e!=`OperationError: Failed to set local offer sdp: Called in wrong state: kHaveRemoteOffer`&&(t.emitError(My.WebRTC,e),$.log(`Failed to setLocalDescription, `,e))}}catch(e){t.emitError(My.WebRTC,e),$.log(`Failed to createOffer, `,e)}}async _makeAnswer(){let e=this.connection.peerConnection,t=this.connection.provider;try{let n=await e.createAnswer();$.log(`Created answer.`),this.connection.options.sdpTransform&&typeof this.connection.options.sdpTransform==`function`&&(n.sdp=this.connection.options.sdpTransform(n.sdp)||n.sdp);try{await e.setLocalDescription(n),$.log(`Set localDescription:`,n,`for:${this.connection.peer}`),t.socket.send({type:Ly.Answer,payload:{sdp:n,type:this.connection.type,connectionId:this.connection.connectionId},dst:this.connection.peer})}catch(e){t.emitError(My.WebRTC,e),$.log(`Failed to setLocalDescription, `,e)}}catch(e){t.emitError(My.WebRTC,e),$.log(`Failed to create answer, `,e)}}async handleSDP(e,t){t=new RTCSessionDescription(t);let n=this.connection.peerConnection,r=this.connection.provider;$.log(`Setting remote description`,t);let i=this;try{await n.setRemoteDescription(t),$.log(`Set remoteDescription:${e} for:${this.connection.peer}`),e===`OFFER`&&await i._makeAnswer()}catch(e){r.emitError(My.WebRTC,e),$.log(`Failed to setRemoteDescription, `,e)}}async handleCandidate(e){$.log(`handleCandidate:`,e);try{await this.connection.peerConnection.addIceCandidate(e),$.log(`Added ICE candidate for:${this.connection.peer}`)}catch(e){this.connection.provider.emitError(My.WebRTC,e),$.log(`Failed to handleCandidate, `,e)}}_addTracksToConnection(e,t){if($.log(`add tracks from stream ${e.id} to peer connection`),!t.addTrack)return $.error(`Your browser does't support RTCPeerConnection#addTrack. Ignored.`);e.getTracks().forEach(n=>{t.addTrack(n,e)})}_addStreamToMediaConnection(e,t){$.log(`add stream ${e.id} to media connection ${t.connectionId}`),t.addStream(e)}},Vy=class extends Sy.EventEmitter{emitError(e,t){$.error(`Error:`,t),this.emit(`error`,new Hy(`${e}`,t))}},Hy=class extends Error{constructor(e,t){typeof t==`string`?super(t):(super(),Object.assign(this,t)),this.type=e}},Uy=class extends Vy{get open(){return this._open}constructor(e,t,n){super(),this.peer=e,this.provider=t,this.options=n,this._open=!1,this.metadata=n.metadata}},Wy=class e extends Uy{static#e=this.ID_PREFIX=`mc_`;get type(){return jy.Media}get localStream(){return this._localStream}get remoteStream(){return this._remoteStream}constructor(t,n,r){super(t,n,r),this._localStream=this.options._stream,this.connectionId=this.options.connectionId||e.ID_PREFIX+by.randomToken(),this._negotiator=new By(this),this._localStream&&this._negotiator.startConnection({_stream:this._localStream,originator:!0})}_initializeDataChannel(e){this.dataChannel=e,this.dataChannel.onopen=()=>{$.log(`DC#${this.connectionId} dc connection success`),this.emit(`willCloseOnRemote`)},this.dataChannel.onclose=()=>{$.log(`DC#${this.connectionId} dc closed for:`,this.peer),this.close()}}addStream(e){$.log(`Receiving stream`,e),this._remoteStream=e,super.emit(`stream`,e)}handleMessage(e){let t=e.type,n=e.payload;switch(e.type){case Ly.Answer:this._negotiator.handleSDP(t,n.sdp),this._open=!0;break;case Ly.Candidate:this._negotiator.handleCandidate(n.candidate);break;default:$.warn(`Unrecognized message type:${t} from peer:${this.peer}`)}}answer(e,t={}){if(this._localStream){$.warn(`Local stream already exists on this MediaConnection. Are you answering a call twice?`);return}this._localStream=e,t&&t.sdpTransform&&(this.options.sdpTransform=t.sdpTransform),this._negotiator.startConnection({...this.options._payload,_stream:e});let n=this.provider._getMessages(this.connectionId);for(let e of n)this.handleMessage(e);this._open=!0}close(){this._negotiator&&=(this._negotiator.cleanup(),null),this._localStream=null,this._remoteStream=null,this.provider&&=(this.provider._removeConnection(this),null),this.options&&this.options._stream&&(this.options._stream=null),this.open&&(this._open=!1,super.emit(`close`))}},Gy=class{constructor(e){this._options=e}_buildRequest(e){let t=this._options.secure?`https`:`http`,{host:n,port:r,path:i,key:a}=this._options,o=new URL(`${t}://${n}:${r}${i}${a}/${e}`);return o.searchParams.set(`ts`,`${Date.now()}${Math.random()}`),o.searchParams.set(`version`,Ry),fetch(o.href,{referrerPolicy:this._options.referrerPolicy})}async retrieveId(){try{let e=await this._buildRequest(`id`);if(e.status!==200)throw Error(`Error. Status:${e.status}`);return e.text()}catch(e){$.error(`Error retrieving ID`,e);let t=``;throw this._options.path===`/`&&this._options.host!==by.CLOUD_HOST&&(t=" If you passed in a `path` to your self-hosted PeerServer, you'll also need to pass in that same path when creating a new Peer."),Error(`Could not get an ID from the server.`+t)}}async listAllPeers(){try{let e=await this._buildRequest(`peers`);if(e.status!==200){if(e.status===401){let e=``;throw e=this._options.host===by.CLOUD_HOST?`It looks like you're using the cloud server. You can email team@peerjs.com to enable peer listing for your API key.`:"You need to enable `allow_discovery` on your self-hosted PeerServer to use this feature.",Error(`It doesn't look like you have permission to list peers IDs. `+e)}throw Error(`Error. Status:${e.status}`)}return e.json()}catch(e){throw $.error(`Error retrieving list peers`,e),Error(`Could not get list peers from the server.`+e)}}},Ky=class e extends Uy{static#e=this.ID_PREFIX=`dc_`;static#t=this.MAX_BUFFERED_AMOUNT=8388608;get type(){return jy.Data}constructor(t,n,r){super(t,n,r),this.connectionId=this.options.connectionId||e.ID_PREFIX+vy(),this.label=this.options.label||this.connectionId,this.reliable=!!this.options.reliable,this._negotiator=new By(this),this._negotiator.startConnection(this.options._payload||{originator:!0,reliable:this.reliable})}_initializeDataChannel(e){this.dataChannel=e,this.dataChannel.onopen=()=>{$.log(`DC#${this.connectionId} dc connection success`),this._open=!0,this.emit(`open`)},this.dataChannel.onmessage=e=>{$.log(`DC#${this.connectionId} dc onmessage:`,e.data)},this.dataChannel.onclose=()=>{$.log(`DC#${this.connectionId} dc closed for:`,this.peer),this.close()}}close(e){if(e?.flush){this.send({__peerData:{type:`close`}});return}this._negotiator&&=(this._negotiator.cleanup(),null),this.provider&&=(this.provider._removeConnection(this),null),this.dataChannel&&=(this.dataChannel.onopen=null,this.dataChannel.onmessage=null,this.dataChannel.onclose=null,null),this.open&&(this._open=!1,super.emit(`close`))}send(e,t=!1){if(!this.open){this.emitError(Py.NotOpenYet,"Connection is not open. You should listen for the `open` event before sending messages.");return}return this._send(e,t)}async handleMessage(e){let t=e.payload;switch(e.type){case Ly.Answer:await this._negotiator.handleSDP(e.type,t.sdp);break;case Ly.Candidate:await this._negotiator.handleCandidate(t.candidate);break;default:$.warn(`Unrecognized message type:`,e.type,`from peer:`,this.peer)}}},qy=class extends Ky{get bufferSize(){return this._bufferSize}_initializeDataChannel(e){super._initializeDataChannel(e),this.dataChannel.binaryType=`arraybuffer`,this.dataChannel.addEventListener(`message`,e=>this._handleDataMessage(e))}_bufferedSend(e){(this._buffering||!this._trySend(e))&&(this._buffer.push(e),this._bufferSize=this._buffer.length)}_trySend(e){if(!this.open)return!1;if(this.dataChannel.bufferedAmount>Ky.MAX_BUFFERED_AMOUNT)return this._buffering=!0,setTimeout(()=>{this._buffering=!1,this._tryBuffer()},50),!1;try{this.dataChannel.send(e)}catch(e){return $.error(`DC#:${this.connectionId} Error when sending:`,e),this._buffering=!0,this.close(),!1}return!0}_tryBuffer(){if(!this.open||this._buffer.length===0)return;let e=this._buffer[0];this._trySend(e)&&(this._buffer.shift(),this._bufferSize=this._buffer.length,this._tryBuffer())}close(e){if(e?.flush){this.send({__peerData:{type:`close`}});return}this._buffer=[],this._bufferSize=0,super.close()}constructor(...e){super(...e),this._buffer=[],this._bufferSize=0,this._buffering=!1}},Jy=class extends qy{close(e){super.close(e),this._chunkedData={}}constructor(e,t,n){super(e,t,n),this.chunker=new py,this.serialization=Fy.Binary,this._chunkedData={}}_handleDataMessage({data:e}){let t=tv(e),n=t.__peerData;if(n){if(n.type===`close`){this.close();return}this._handleChunk(t);return}this.emit(`data`,t)}_handleChunk(e){let t=e.__peerData,n=this._chunkedData[t]||{data:[],count:0,total:e.total};if(n.data[e.n]=new Uint8Array(e.data),n.count++,this._chunkedData[t]=n,n.total===n.count){delete this._chunkedData[t];let e=my(n.data);this._handleDataMessage({data:e})}}_send(e,t){let n=nv(e);if(n instanceof Promise)return this._send_blob(n);if(!t&&n.byteLength>this.chunker.chunkedMTU){this._sendChunks(n);return}this._bufferedSend(n)}async _send_blob(e){let t=await e;if(t.byteLength>this.chunker.chunkedMTU){this._sendChunks(t);return}this._bufferedSend(t)}_sendChunks(e){let t=this.chunker.chunk(e);$.log(`DC#${this.connectionId} Try to send ${t.length} chunks...`);for(let e of t)this.send(e,!0)}},Yy=class extends qy{_handleDataMessage({data:e}){super.emit(`data`,e)}_send(e,t){this._bufferedSend(e)}constructor(...e){super(...e),this.serialization=Fy.None}},Xy=class extends qy{_handleDataMessage({data:e}){let t=this.parse(this.decoder.decode(e)),n=t.__peerData;if(n&&n.type===`close`){this.close();return}this.emit(`data`,t)}_send(e,t){let n=this.encoder.encode(this.stringify(e));if(n.byteLength>=by.chunkedMTU){this.emitError(Py.MessageToBig,`Message too big for JSON channel`);return}this._bufferedSend(n)}constructor(...e){super(...e),this.serialization=Fy.JSON,this.encoder=new TextEncoder,this.decoder=new TextDecoder,this.stringify=JSON.stringify,this.parse=JSON.parse}},Zy=class e extends Vy{static#e=this.DEFAULT_KEY=`peerjs`;get id(){return this._id}get options(){return this._options}get open(){return this._open}get socket(){return this._socket}get connections(){let e=Object.create(null);for(let[t,n]of this._connections)e[t]=n;return e}get destroyed(){return this._destroyed}get disconnected(){return this._disconnected}constructor(t,n){super(),this._serializers={raw:Yy,json:Xy,binary:Jy,"binary-utf8":Jy,default:Jy},this._id=null,this._lastServerId=null,this._destroyed=!1,this._disconnected=!1,this._open=!1,this._connections=new Map,this._lostMessages=new Map;let r;if(t&&t.constructor==Object?n=t:t&&(r=t.toString()),n={debug:0,host:by.CLOUD_HOST,port:by.CLOUD_PORT,path:`/`,key:e.DEFAULT_KEY,token:by.randomToken(),config:by.defaultConfig,referrerPolicy:`strict-origin-when-cross-origin`,serializers:{},...n},this._options=n,this._serializers={...this._serializers,...this.options.serializers},this._options.host===`/`&&(this._options.host=window.location.hostname),this._options.path&&(this._options.path[0]!==`/`&&(this._options.path=`/`+this._options.path),this._options.path[this._options.path.length-1]!==`/`&&(this._options.path+=`/`)),this._options.secure===void 0&&this._options.host!==by.CLOUD_HOST?this._options.secure=by.isSecure():this._options.host==by.CLOUD_HOST&&(this._options.secure=!0),this._options.logFunction&&$.setLogFunction(this._options.logFunction),$.logLevel=this._options.debug||0,this._api=new Gy(n),this._socket=this._createServerConnection(),!by.supports.audioVideo&&!by.supports.data){this._delayedAbort(My.BrowserIncompatible,`The current browser does not support WebRTC`);return}if(r&&!by.validateId(r)){this._delayedAbort(My.InvalidID,`ID "${r}" is invalid`);return}r?this._initialize(r):this._api.retrieveId().then(e=>this._initialize(e)).catch(e=>this._abort(My.ServerError,e))}_createServerConnection(){let e=new zy(this._options.secure,this._options.host,this._options.port,this._options.path,this._options.key,this._options.pingInterval);return e.on(Iy.Message,e=>{this._handleMessage(e)}),e.on(Iy.Error,e=>{this._abort(My.SocketError,e)}),e.on(Iy.Disconnected,()=>{this.disconnected||(this.emitError(My.Network,`Lost connection to server.`),this.disconnect())}),e.on(Iy.Close,()=>{this.disconnected||this._abort(My.SocketClosed,`Underlying socket is already closed.`)}),e}_initialize(e){this._id=e,this.socket.start(e,this._options.token)}_handleMessage(e){let t=e.type,n=e.payload,r=e.src;switch(t){case Ly.Open:this._lastServerId=this.id,this._open=!0,this.emit(`open`,this.id);break;case Ly.Error:this._abort(My.ServerError,n.msg);break;case Ly.IdTaken:this._abort(My.UnavailableID,`ID "${this.id}" is taken`);break;case Ly.InvalidKey:this._abort(My.InvalidKey,`API KEY "${this._options.key}" is invalid`);break;case Ly.Leave:$.log(`Received leave message from ${r}`),this._cleanupPeer(r),this._connections.delete(r);break;case Ly.Expire:this.emitError(My.PeerUnavailable,`Could not connect to peer ${r}`);break;case Ly.Offer:{let e=n.connectionId,t=this.getConnection(r,e);if(t&&(t.close(),$.warn(`Offer received for existing Connection ID:${e}`)),n.type===jy.Media){let i=new Wy(r,this,{connectionId:e,_payload:n,metadata:n.metadata});t=i,this._addConnection(r,t),this.emit(`call`,i)}else if(n.type===jy.Data){let i=new this._serializers[n.serialization](r,this,{connectionId:e,_payload:n,metadata:n.metadata,label:n.label,serialization:n.serialization,reliable:n.reliable});t=i,this._addConnection(r,t),this.emit(`connection`,i)}else{$.warn(`Received malformed connection type:${n.type}`);return}let i=this._getMessages(e);for(let e of i)t.handleMessage(e);break}default:{if(!n){$.warn(`You received a malformed message from ${r} of type ${t}`);return}let i=n.connectionId,a=this.getConnection(r,i);a&&a.peerConnection?a.handleMessage(e):i?this._storeMessage(i,e):$.warn(`You received an unrecognized message:`,e);break}}}_storeMessage(e,t){this._lostMessages.has(e)||this._lostMessages.set(e,[]),this._lostMessages.get(e).push(t)}_getMessages(e){let t=this._lostMessages.get(e);return t?(this._lostMessages.delete(e),t):[]}connect(e,t={}){if(t={serialization:`default`,...t},this.disconnected){$.warn(`You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect, or call reconnect on this peer if you believe its ID to still be available.`),this.emitError(My.Disconnected,`Cannot connect to new Peer after disconnecting from server.`);return}let n=new this._serializers[t.serialization](e,this,t);return this._addConnection(e,n),n}call(e,t,n={}){if(this.disconnected){$.warn(`You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect.`),this.emitError(My.Disconnected,`Cannot connect to new Peer after disconnecting from server.`);return}if(!t){$.error("To call a peer, you must provide a stream from your browser's `getUserMedia`.");return}let r=new Wy(e,this,{...n,_stream:t});return this._addConnection(e,r),r}_addConnection(e,t){$.log(`add connection ${t.type}:${t.connectionId} to peerId:${e}`),this._connections.has(e)||this._connections.set(e,[]),this._connections.get(e).push(t)}_removeConnection(e){let t=this._connections.get(e.peer);if(t){let n=t.indexOf(e);n!==-1&&t.splice(n,1)}this._lostMessages.delete(e.connectionId)}getConnection(e,t){let n=this._connections.get(e);if(!n)return null;for(let e of n)if(e.connectionId===t)return e;return null}_delayedAbort(e,t){setTimeout(()=>{this._abort(e,t)},0)}_abort(e,t){$.error(`Aborting!`),this.emitError(e,t),this._lastServerId?this.disconnect():this.destroy()}destroy(){this.destroyed||($.log(`Destroy peer with ID:${this.id}`),this.disconnect(),this._cleanup(),this._destroyed=!0,this.emit(`close`))}_cleanup(){for(let e of this._connections.keys())this._cleanupPeer(e),this._connections.delete(e);this.socket.removeAllListeners()}_cleanupPeer(e){let t=this._connections.get(e);if(t)for(let e of t)e.close()}disconnect(){if(this.disconnected)return;let e=this.id;$.log(`Disconnect peer with ID:${e}`),this._disconnected=!0,this._open=!1,this.socket.close(),this._lastServerId=e,this._id=null,this.emit(`disconnected`,e)}reconnect(){if(this.disconnected&&!this.destroyed)$.log(`Attempting reconnection to server with ID ${this._lastServerId}`),this._disconnected=!1,this._initialize(this._lastServerId);else if(this.destroyed)throw Error(`This peer cannot reconnect to the server. It has already been destroyed.`);else if(!this.disconnected&&!this.open)$.error(`In a hurry? We're still trying to make the initial connection!`);else throw Error(`Peer ${this.id} cannot reconnect because it is not disconnected from the server!`)}listAllPeers(e=e=>{}){this._api.listAllPeers().then(t=>e(t)).catch(e=>this._abort(My.ServerError,e))}};document.querySelector(`#app`).innerHTML=`
+  <div class="luxury-bg"></div>
   <canvas id="game-canvas"></canvas>
   <div id="ui-layer">
-    <div id="loading-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; background: var(--bg-dark); gap: 1.5rem;">
-      <h1 style="color: var(--accent); font-family: 'Playfair Display', serif;">Carregando Modelos 3D...</h1>
-      <div style="width: 280px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-        <div id="loading-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #d4af37, #fcd34d); border-radius: 3px; transition: width 0.3s ease;"></div>
+    <div id="loading-screen" class="loading-overlay">
+      <div class="loading-content">
+        <h1 class="title-serif">Carregando Modelos 3D...</h1>
+        <div class="progress-track">
+          <div id="loading-bar" class="progress-fill"></div>
+        </div>
+        <span id="loading-percent" class="progress-text">0%</span>
       </div>
-      <span id="loading-percent" style="color: var(--text-muted); font-size: 0.9rem;">0%</span>
     </div>
     
-    <header>
+    <header class="top-bar">
       <div class="logo-area">
-        <div class="logo-icon">♔</div>
+        <svg class="icon-crown" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 19h20v2H2v-2zm19-8l-2 5H5l-2-5 5 2 4-7 4 7 5-2z"/>
+        </svg>
         <div class="logo-text">
-          <h1>Grandmaster 3D</h1>
-          <p>Xadrez real • motor local</p>
+          <h1 class="title-serif">GRANDMASTER 3D</h1>
+          <p>XADREZ REAL • ESTRATÉGIA ELEGANTE</p>
         </div>
       </div>
       <div class="status-indicator">
-        <div class="dot"></div>
-        <span>Motor local pronto</span>
+        <div class="dot-green"></div>
+        <span>MOTOR LOCAL PERTO</span>
       </div>
-      <button id="menu-btn">☰</button>
     </header>
 
     <div class="main-content">
       <aside class="right-panel" id="right-panel">
-        <button id="close-menu-btn">&times;</button>
+        
         <div class="panel-header">
-          <h3>Partida</h3>
-          <h2 id="turn-title">Sua vez</h2>
-          <p id="turn-subtitle">Brancas jogam.</p>
-          <div class="clocks-container">
-            <div class="clock active" id="clock-w">
-              <span class="label">Brancas</span>
-              <span class="time">10:00</span>
-            </div>
-            <div class="clock" id="clock-b">
-              <span class="label">Pretas</span>
-              <span class="time">10:00</span>
-            </div>
+          <svg class="icon-crest" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+          <div class="turn-info">
+            <h2 id="turn-title" class="title-serif">SUA VEZ</h2>
+            <p id="turn-subtitle">BRANCAS JOGAM</p>
+          </div>
+        </div>
+        
+        <div class="clocks-container">
+          <div class="clock-box" id="clock-w">
+            <span class="label">RESTANTE</span>
+            <span class="time">7:59</span>
+          </div>
+          <div class="clock-box" id="clock-b">
+            <span class="label">TOTAL</span>
+            <span class="time">10:00</span>
           </div>
         </div>
         
         <div class="divider"></div>
 
-        <div class="section-label">Jogo</div>
-        <div class="segmented-control" id="game-control">
-          <button class="seg-btn active" data-game="chess">Xadrez</button>
-          <button class="seg-btn" data-game="checkers">Damas</button>
+        <div class="section">
+          <div class="section-label">JOGO</div>
+          <div class="segmented-control" id="game-control">
+            <button class="seg-btn active" data-game="chess"><div class="radio-dot"></div> XADREZ</button>
+            <button class="seg-btn" data-game="checkers"><div class="radio-dot"></div> DAMA</button>
+          </div>
         </div>
         
-        <div class="section-label">Modo</div>
-        <div class="segmented-control" id="mode-control">
-          <button class="seg-btn active" data-mode="ai">Contra IA</button>
-          <button class="seg-btn" data-mode="friend">Contra Amigo</button>
-          <button class="seg-btn" data-mode="online">Online</button>
+        <div class="section">
+          <div class="section-label">MODO</div>
+          <div class="segmented-control" id="mode-control">
+            <button class="seg-btn active" data-mode="ai"><div class="radio-dot"></div> CONTRA IA</button>
+            <button class="seg-btn" data-mode="friend"><div class="radio-dot"></div> CONTRA AMIGO</button>
+            <button class="seg-btn" data-mode="online"><div class="radio-dot"></div> ONLINE</button>
+          </div>
         </div>
 
-        <div id="online-panel" style="display: none; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-          <div style="margin-bottom: 10px;">
-            <button class="btn-secondary" id="btn-host" style="width: 100%;">Criar Sala (Host)</button>
+        <div id="online-panel" style="display: none; margin-top: 10px;">
+          <div class="input-group">
+            <button class="btn-outline" id="btn-host" style="width: 100%; margin-bottom: 5px;">CRIAR SALA</button>
+            <div style="display: flex; gap: 5px;">
+              <input type="text" id="input-join" placeholder="CÓDIGO" class="luxury-input">
+              <button class="btn-outline" id="btn-join">ENTRAR</button>
+            </div>
+            <p id="online-status" class="status-text">DESCONECTADO</p>
           </div>
-          <div style="display: flex; gap: 5px;">
-            <input type="text" id="input-join" placeholder="Código" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-light); text-transform: uppercase;">
-            <button class="btn-secondary" id="btn-join">Entrar</button>
+        </div>
+        
+        <div class="section" id="diff-label">
+          <div class="section-label">DIFICULDADE</div>
+          <div class="segmented-control" id="diff-control">
+            <button class="seg-btn" data-diff="amador"><div class="radio-dot"></div> AMADOR</button>
+            <button class="seg-btn active" data-diff="semi"><div class="radio-dot"></div> SEMIPROFISSIONAL</button>
+            <button class="seg-btn" data-diff="pro"><div class="radio-dot"></div> PROFISSIONAL</button>
           </div>
-          <p id="online-status" style="margin-top: 10px; font-size: 12px; color: var(--text-dim); text-align: center;">Desconectado</p>
         </div>
         
-        <div class="section-label" id="diff-label">Dificuldade</div>
-        <div class="segmented-control" id="diff-control">
-          <button class="seg-btn" data-diff="amador">Amador</button>
-          <button class="seg-btn active" data-diff="semi">Semiprofissional</button>
-          <button class="seg-btn" data-diff="pro">Profissional</button>
+        <div class="section">
+          <div class="section-label">VOCÊ JOGA COM</div>
+          <div class="segmented-control" id="color-control">
+            <button class="seg-btn active" data-color="w"><div class="radio-dot"></div> BRANCAS</button>
+            <button class="seg-btn" data-color="b"><div class="radio-dot"></div> PRETAS</button>
+            <button class="seg-btn" data-color="r"><div class="radio-dot"></div> ALEATÓRIO</button>
+          </div>
         </div>
         
-        <div class="section-label">Você joga com</div>
-        <div class="segmented-control" id="color-control">
-          <button class="seg-btn active" data-color="w">Brancas</button>
-          <button class="seg-btn" data-color="b">Pretas</button>
-          <button class="seg-btn" data-color="r">Aleatório</button>
-        </div>
-        
-        <button class="btn-primary" id="btn-new">Nova partida</button>
+        <button class="btn-gold" id="btn-new">NOVA PARTIDA</button>
         
         <div class="secondary-actions">
-          <button class="btn-secondary" id="btn-undo">↶ Desfazer</button>
-          <button class="btn-secondary" id="btn-flip">↺ Virar</button>
+          <button class="btn-text" id="btn-undo">↺ DESFAZER</button>
+          <button class="btn-text" id="btn-flip">💡 DICAS</button>
         </div>
         
-        <div class="divider"></div>
-        
-        <div class="history-header">
-          <span class="section-label" style="margin:0;">Histórico</span>
-          <button class="btn-small" id="btn-pgn">Copiar PGN</button>
+        <div class="panel-footer">
+          <div class="player-info">
+            <svg class="icon-avatar" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <div class="player-details">
+              <span>JOGADOR</span>
+              <span class="rank">INICIANTE ★ 1200</span>
+            </div>
+          </div>
+          <div class="footer-icons">
+            <button class="btn-icon">📈</button>
+            <button class="btn-icon">🏆</button>
+          </div>
         </div>
-        <div class="history-list" id="history-list">Nenhum lance ainda.</div>
       </aside>
     </div>
     
-    <button id="btn-lock-camera" class="btn-lock-camera" title="Travar Câmera">🔓 Travar Câmera</button>
-    <footer>Arraste para girar • roda do mouse para zoom • clique para jogar</footer>
+    <div class="bottom-bar">
+      <div class="footer-left">
+        <button class="btn-footer">⚙️ CONFIGURAÇÕES</button>
+        <button class="btn-footer">✨ TEMA LUXO</button>
+        <button class="btn-footer">🔊 SOM</button>
+        <button class="btn-footer">❓ AJUDA</button>
+      </div>
+      <div class="footer-center">
+        <button id="btn-lock-camera" class="btn-lock-camera">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          TRAVAR CÂMERA
+        </button>
+      </div>
+      <div class="footer-right">
+        <span>ARRASTE PARA GIRAR • RODA DO MOUSE PARA ZOOM • CLIQUE PARA JOGAR</span>
+      </div>
+    </div>
     <div id="alert-center" class="alert-center"></div>
   </div>
 `;var Qy=window.innerWidth<=768,$y=document.querySelector(`#game-canvas`),eb;try{eb=new bu({canvas:$y,antialias:!Qy,powerPreference:Qy?`low-power`:`default`,precision:Qy?`mediump`:`highp`})}catch(e){throw document.getElementById(`loading-screen`).innerHTML=`
